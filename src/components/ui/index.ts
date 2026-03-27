@@ -10,3 +10,4 @@ export { Checkbox } from "./checkbox";
 export { Label } from "./label";
 export { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./alert-dialog";
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter, TableCaption } from "./table";
+export { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./select";

@@ -1,1 +1,2 @@
-// Table components — will be added as needed
+export { TableFormDialog } from "./table-form-dialog";
+export { QrPreviewDialog } from "./qr-preview-dialog";

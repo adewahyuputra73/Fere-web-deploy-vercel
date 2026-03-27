@@ -4,11 +4,9 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { AxiosError } from "axios";
 import { PageHeader } from "@/components/layout";
 import { Button, useToast } from "@/components/ui";
-import { ProductTable } from "@/features/products/components/product-table";
-import { ProductModal } from "@/features/products/components/product-modal";
-import { Product, ProductFormData } from "@/features/products/types";
-import { productService } from "@/features/products/services/product-service";
-import { categoryService } from "@/features/categories/services/category-service";
+import { ProductTable, ProductModal, productService } from "@/features/products";
+import type { Product, ProductFormData } from "@/features/products";
+import { categoryService } from "@/features/categories";
 import { cn } from "@/lib/utils";
 import {
   Plus,
