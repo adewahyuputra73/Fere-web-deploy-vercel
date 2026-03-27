@@ -161,4 +161,13 @@ export const ENDPOINTS = {
     SALES_CHART: "/dashboard/sales-chart",
     TOP_PRODUCTS: "/dashboard/top-products",
   },
+
+  // Staff Management
+  STAFF: {
+    LIST: "/staff",
+    CREATE: "/staff",
+    UPDATE: (id: string | number) => `/staff/${id}`,
+    DELETE: (id: string | number) => `/staff/${id}`,
+    ROLES: "/staff/roles",
+  },
 } as const;

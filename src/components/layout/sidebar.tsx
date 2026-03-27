@@ -104,28 +104,6 @@ const navItems: NavItem[] = [
   },
 ];
 
-// Master menu items — admin & manager only
-const masterNavItems: NavItem[] = [
-  {
-    label: "Master Produk",
-    href: "/master/products",
-    icon: <Package className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Master Varian",
-    href: "/master/variants",
-    icon: <Layers className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Master Kategori",
-    href: "/master/categories",
-    icon: <Tag className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-];
-
 // Pelanggan menu items — admin & manager only
 const pelangganNavItems: NavItem[] = [
   {
@@ -230,6 +208,12 @@ const bottomNavItems: NavItem[] = [
     label: "Settings",
     href: "/settings",
     icon: <Settings className="h-5 w-5" />,
+    roles: ["owner"],
+  },
+  {
+    label: "Staff",
+    href: "/staff",
+    icon: <Users className="h-5 w-5" />,
     roles: ["owner"],
   },
   {
@@ -344,19 +328,6 @@ export function Sidebar() {
         {filterByRole(navItems).map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
-
-        {/* Master Section — admin & manager only */}
-        {filterByRole(masterNavItems).length > 0 && (
-          <>
-            <p className={cn(
-              "text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-3 mb-3 mt-6",
-              sidebarCollapsed && "hidden"
-            )}>Master</p>
-            {filterByRole(masterNavItems).map((item) => (
-              <NavLink key={item.href} item={item} />
-            ))}
-          </>
-        )}
 
         {/* Inventory Section */}
         {filterByRole(inventoryNavItems).length > 0 && (
