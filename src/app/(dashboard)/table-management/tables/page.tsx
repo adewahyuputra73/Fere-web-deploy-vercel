@@ -356,7 +356,7 @@ export default function TablesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-text-secondary">{t.area?.name || ''}</TableCell>
-                  <TableCell className="text-center text-sm text-text-primary">{t.capacity} pax</TableCell>
+                  <TableCell className="text-center text-sm text-text-primary">{t.capacity} kursi</TableCell>
                   <TableCell className="text-center">
                     <Badge variant={sc.variant} size="sm">{sc.label}</Badge>
                   </TableCell>
