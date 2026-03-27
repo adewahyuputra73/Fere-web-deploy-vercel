@@ -5,25 +5,32 @@ import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui";
 import { useAuthStore } from "@/stores";
 import { authService } from "../services/auth-service";
-import { Eye, EyeOff, Phone, Lock, LogIn, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  Eye, EyeOff, Phone, Lock, User, ArrowLeft, RefreshCw, UserPlus,
+} from "lucide-react";
 
 type Step = "credentials" | "otp";
 
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter();
   const { login } = useAuthStore();
 
   const [step, setStep] = useState<Step>("credentials");
 
   // Step 1 state
+  const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [normalizedPhone, setNormalizedPhone] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [normalizedPhone, setNormalizedPhone] = useState("");
 
-  // Step 2 state
+  // Errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Step 2 OTP state
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
@@ -31,78 +38,76 @@ export function LoginForm() {
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Countdown timer for resend
+  // Countdown timer
   useEffect(() => {
     if (resendCountdown <= 0) return;
-    const timer = setTimeout(() => setResendCountdown(c => c - 1), 1000);
+    const timer = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCountdown]);
 
-  // Normalize phone number to 628xxxxxxxx format (what API expects)
+  // Normalize phone → 628xxxxxxxx
   const normalizePhone = (raw: string): string => {
     const digits = raw.trim().replace(/\s|-/g, "");
-    if (digits.startsWith("+")) return digits.slice(1);       // +628xxx → 628xxx
-    if (digits.startsWith("08")) return "62" + digits.slice(1); // 08xxx → 628xxx
-    if (digits.startsWith("8")) return "62" + digits;          // 8xxx → 628xxx
-    return digits;                                              // 628xxx, 682xxx → as-is
+    if (digits.startsWith("+")) return digits.slice(1);
+    if (digits.startsWith("08")) return "62" + digits.slice(1);
+    if (digits.startsWith("8")) return "62" + digits;
+    return digits;
   };
 
-  // Validate step 1
-  const validateCredentials = () => {
-    let valid = true;
-    setPhoneError("");
-    setPasswordError("");
-    if (!phoneNumber.trim()) {
-      setPhoneError("Nomor HP wajib diisi");
-      valid = false;
-    }
-    if (!password) {
-      setPasswordError("Password wajib diisi");
-      valid = false;
-    } else if (password.length < 6) {
-      setPasswordError("Password minimal 6 karakter");
-      valid = false;
-    }
-    return valid;
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!fullName.trim()) errs.fullName = "Nama lengkap wajib diisi";
+    if (!phoneNumber.trim()) errs.phoneNumber = "Nomor HP wajib diisi";
+    if (!password) errs.password = "Password wajib diisi";
+    else if (password.length < 6) errs.password = "Password minimal 6 karakter";
+    if (!passwordConfirm) errs.passwordConfirm = "Konfirmasi password wajib diisi";
+    else if (password !== passwordConfirm) errs.passwordConfirm = "Password tidak cocok";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  // Submit step 1: login → trigger OTP
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateCredentials()) return;
+    if (!validate()) return;
 
     const normalized = normalizePhone(phoneNumber);
     setNormalizedPhone(normalized);
     setIsLoading(true);
     setErrorMessage(null);
+
     try {
-      const loginResult = await authService.login({ phone_number: normalized, password }) as any;
-      setDebugOtp(loginResult?.debug_otp ?? null);
-      // Login succeeded → OTP has been sent to phone
+      const result = await authService.register({
+        full_name: fullName.trim(),
+        phone_number: normalized,
+        password,
+        password_confirm: passwordConfirm,
+      }) as any;
+      setDebugOtp(result?.debug_otp ?? null);
       setStep("otp");
       setResendCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
-      // Focus first OTP box
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch {
-      setErrorMessage("Nomor HP atau password salah. Silakan coba lagi.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? "";
+      if (msg.toLowerCase().includes("sudah") || msg.toLowerCase().includes("registered") || msg.toLowerCase().includes("exist")) {
+        setErrors((prev) => ({ ...prev, phoneNumber: "Nomor HP sudah terdaftar" }));
+      } else {
+        setErrorMessage(msg || "Pendaftaran gagal. Silakan coba lagi.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // OTP input handling
+  // OTP handlers
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
     const newDigits = [...otpDigits];
     newDigits[index] = digit;
     setOtpDigits(newDigits);
     setOtpError("");
-    if (digit && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
+    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -115,15 +120,11 @@ export function LoginForm() {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     const newDigits = [...otpDigits];
-    for (let i = 0; i < 6; i++) {
-      newDigits[i] = pasted[i] || "";
-    }
+    for (let i = 0; i < 6; i++) newDigits[i] = pasted[i] || "";
     setOtpDigits(newDigits);
-    const focusIndex = Math.min(pasted.length, 5);
-    otpRefs.current[focusIndex]?.focus();
+    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
   };
 
-  // Submit step 2: verify OTP
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const otp = otpDigits.join("");
@@ -131,7 +132,6 @@ export function LoginForm() {
       setOtpError("Masukkan 6 digit kode OTP");
       return;
     }
-
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -159,7 +159,6 @@ export function LoginForm() {
     }
   };
 
-  // Resend OTP
   const handleResend = async () => {
     if (resendCountdown > 0) return;
     setErrorMessage(null);
@@ -174,16 +173,15 @@ export function LoginForm() {
     }
   };
 
-  // Mask normalized phone for display (e.g. 6281****890)
   const maskedPhone = normalizedPhone.length > 6
     ? normalizedPhone.slice(0, 4) + "****" + normalizedPhone.slice(-3)
     : normalizedPhone;
 
-  // ─── Step 1: Credentials ───────────────────────────────────────────────────
+  // ─── Step 1: Form Registrasi ───────────────────────────────────────────────
   if (step === "credentials") {
     return (
       <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
-        <form onSubmit={handleCredentialsSubmit} className="space-y-5">
+        <form onSubmit={handleRegisterSubmit} className="space-y-4">
           {errorMessage && (
             <div className="p-4 text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-red-600 shrink-0" />
@@ -191,57 +189,68 @@ export function LoginForm() {
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <Input
-                label="Nomor HP"
-                type="tel"
-                placeholder="08123456789"
-                value={phoneNumber}
-                onChange={(e) => { setPhoneNumber(e.target.value); setPhoneError(""); }}
-                error={phoneError}
-                leftIcon={<Phone className="h-4 w-4 text-slate-400" />}
-                className="rounded-xl"
-              />
-            </div>
+          <Input
+            label="Nama Lengkap"
+            type="text"
+            placeholder="Masukkan nama lengkap"
+            value={fullName}
+            onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: "" })); }}
+            error={errors.fullName}
+            leftIcon={<User className="h-4 w-4 text-slate-400" />}
+          />
 
-            <div>
-              <Input
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
-                error={passwordError}
-                leftIcon={<Lock className="h-4 w-4 text-slate-400" />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
-                className="rounded-xl"
-              />
-            </div>
-          </div>
+          <Input
+            label="Nomor HP"
+            type="tel"
+            placeholder="08123456789"
+            value={phoneNumber}
+            onChange={(e) => { setPhoneNumber(e.target.value); setErrors((p) => ({ ...p, phoneNumber: "" })); }}
+            error={errors.phoneNumber}
+            leftIcon={<Phone className="h-4 w-4 text-slate-400" />}
+          />
 
-          <Button
-            type="submit"
-            className="w-full h-12 text-base"
-            isLoading={isLoading}
-          >
-            <LogIn className="h-5 w-5 mr-1" />
-            Masuk
+          <Input
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Minimal 6 karakter"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
+            error={errors.password}
+            leftIcon={<Lock className="h-4 w-4 text-slate-400" />}
+            rightIcon={
+              <button type="button" onClick={() => setShowPassword((v) => !v)}
+                className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            }
+          />
+
+          <Input
+            label="Konfirmasi Password"
+            type={showConfirm ? "text" : "password"}
+            placeholder="Ulangi password"
+            value={passwordConfirm}
+            onChange={(e) => { setPasswordConfirm(e.target.value); setErrors((p) => ({ ...p, passwordConfirm: "" })); }}
+            error={errors.passwordConfirm}
+            leftIcon={<Lock className="h-4 w-4 text-slate-400" />}
+            rightIcon={
+              <button type="button" onClick={() => setShowConfirm((v) => !v)}
+                className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            }
+          />
+
+          <Button type="submit" className="w-full h-12 text-base mt-2" isLoading={isLoading}>
+            <UserPlus className="h-5 w-5 mr-1" />
+            Daftar Sekarang
           </Button>
         </form>
 
-        <p className="text-center text-sm text-text-secondary mt-6">
-          Belum punya akun?{" "}
-          <a href="/register" className="font-semibold text-primary hover:underline">
-            Daftar Sekarang
+        <p className="text-center text-sm text-text-secondary">
+          Sudah punya akun?{" "}
+          <a href="/login" className="font-semibold text-primary hover:underline">
+            Masuk
           </a>
         </p>
       </div>
@@ -251,27 +260,24 @@ export function LoginForm() {
   // ─── Step 2: OTP ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
-      {/* Back button */}
       <button
         type="button"
         onClick={() => { setStep("credentials"); setErrorMessage(null); setOtpError(""); }}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Ganti nomor HP
+        Kembali
       </button>
 
       <div className="text-center">
-        <p className="text-sm text-text-secondary">
-          Kode OTP telah dikirim ke
-        </p>
+        <p className="text-sm text-text-secondary">Kode OTP telah dikirim ke</p>
         <p className="text-base font-bold text-text-primary mt-0.5">{maskedPhone}</p>
       </div>
 
       <form onSubmit={handleOtpSubmit} className="space-y-5">
         {debugOtp && (
-          <div className="p-3 text-xs font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
-            <span>Debug OTP: {debugOtp}</span>
+          <div className="p-3 text-xs font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl">
+            Debug OTP: {debugOtp}
           </div>
         )}
         {(errorMessage || otpError) && (
@@ -281,20 +287,19 @@ export function LoginForm() {
           </div>
         )}
 
-        {/* OTP boxes */}
         <div>
           <label className="block text-xs font-semibold text-text-primary mb-3">Kode OTP</label>
           <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
             {otpDigits.map((digit, i) => (
               <input
                 key={i}
-                ref={el => { otpRefs.current[i] = el; }}
+                ref={(el) => { otpRefs.current[i] = el; }}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
-                onChange={e => handleOtpChange(i, e.target.value)}
-                onKeyDown={e => handleOtpKeyDown(i, e)}
+                onChange={(e) => handleOtpChange(i, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(i, e)}
                 className={[
                   "w-11 h-14 text-center text-xl font-bold rounded-xl border-2 outline-none transition-all",
                   "focus:border-primary focus:ring-2 focus:ring-primary/20",
@@ -306,15 +311,10 @@ export function LoginForm() {
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full h-12 text-base"
-          isLoading={isLoading}
-        >
-          Verifikasi OTP
+        <Button type="submit" className="w-full h-12 text-base" isLoading={isLoading}>
+          Verifikasi & Masuk
         </Button>
 
-        {/* Resend */}
         <div className="text-center">
           {resendCountdown > 0 ? (
             <p className="text-sm text-text-secondary">

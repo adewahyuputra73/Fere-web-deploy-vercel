@@ -1,0 +1,29 @@
+import { Metadata } from "next";
+import { RegisterForm } from "@/features/auth/components";
+import { APP_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: "Daftar",
+  description: `Buat akun ${APP_NAME} baru`,
+};
+
+export default function RegisterPage() {
+  return (
+    <div className="bg-surface rounded-2xl shadow-xl border border-divider p-8">
+      {/* Mobile logo */}
+      <div className="lg:hidden text-center mb-8">
+        <h1 className="text-2xl font-bold text-indigo-600">{APP_NAME}</h1>
+      </div>
+
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-text-primary">Buat Akun Baru</h2>
+        <p className="text-text-secondary mt-2">
+          Daftarkan diri Anda untuk mulai menggunakan {APP_NAME}
+        </p>
+      </div>
+
+      <RegisterForm />
+    </div>
+  );
+}
