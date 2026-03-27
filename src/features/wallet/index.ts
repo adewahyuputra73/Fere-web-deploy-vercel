@@ -1,4 +1,5 @@
 export { walletService } from "./services";
+export * from "./components";
 export type {
   WalletChannel,
   WalletBalance,

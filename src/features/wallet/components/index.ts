@@ -1,1 +1,1 @@
-// Wallet components — will be added as needed
+export { BalanceCard } from "./balance-card";

@@ -1,1 +1,1 @@
-// Shift components — will be added as needed
+export { ShiftStatusBadge } from "./shift-status-badge";

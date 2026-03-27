@@ -1,2 +1,2 @@
-// Role components will be exported here
-export {};
+export { RoleModal } from "./role-modal";
+export { DeleteConfirm } from "./delete-confirm";

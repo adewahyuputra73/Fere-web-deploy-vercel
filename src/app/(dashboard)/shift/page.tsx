@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils/format";
-import { shiftService } from "@/features/shifts/services/shift-service";
-import type { ShiftStatus, ShiftHistoryItem, StartShiftRequest, EndShiftRequest } from "@/features/shifts/types";
+import { shiftService, ShiftStatusBadge } from "@/features/shifts";
+import type { ShiftStatus, ShiftHistoryItem, StartShiftRequest, EndShiftRequest } from "@/features/shifts";
 import { Clock, LogIn, LogOut, History, CheckCircle2, AlertCircle, Loader2, User } from "lucide-react";
 
 function formatDateTime(iso: string) {
@@ -13,23 +13,6 @@ function formatDateTime(iso: string) {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const s = (status ?? "").toUpperCase();
-  if (s === "OPEN" || s === "ACTIVE") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        Aktif
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">
-      Ditutup
-    </span>
-  );
 }
 
 export default function ShiftPage() {
@@ -148,7 +131,7 @@ export default function ShiftPage() {
           <div className="bg-surface rounded-xl border border-border p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-text-primary">Shift Aktif</h2>
-              <StatusBadge status={shift.status} />
+              <ShiftStatusBadge status={shift.status} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-background rounded-lg p-4">
@@ -297,7 +280,7 @@ export default function ShiftPage() {
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{item.end_time ? formatDateTime(item.end_time) : "-"}</td>
                     <td className="px-4 py-3 text-right text-text-primary font-medium">{formatCurrency(Number(item.opening_cash ?? 0))}</td>
                     <td className="px-4 py-3 text-right text-text-primary font-medium">{item.closing_cash ? formatCurrency(Number(item.closing_cash)) : "-"}</td>
-                    <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                    <td className="px-4 py-3"><ShiftStatusBadge status={item.status} /></td>
                   </tr>
                 ))}
               </tbody>
