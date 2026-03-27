@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { LoginForm } from "@/features/auth/components";
+import { LoginForm } from "@/features/auth";
 import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {

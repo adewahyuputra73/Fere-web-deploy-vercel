@@ -1,16 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { walletService } from "@/features/wallet/services/wallet-service";
-import type { WalletBalance, WalletHistoryItem } from "@/features/wallet/types";
+import { walletService } from "@/features/wallet";
+import type { WalletBalance, WalletHistoryItem } from "@/features/wallet";
 import { useToast } from "@/components/ui";
+import { formatCurrency } from "@/lib/utils";
 import { Banknote, CreditCard, LayoutGrid, ArrowUpCircle, ArrowDownCircle, Coins } from "lucide-react";
-
-function formatCurrency(value: number | string) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency", currency: "IDR", minimumFractionDigits: 0,
-  }).format(Number(value));
-}
 
 function formatDateTime(iso: string) {
   if (!iso) return "-";
@@ -171,7 +166,7 @@ export default function CoinsPage() {
                             {item.note ?? item.cashless_provider ?? item.edc_bank ?? "-"}
                           </td>
                           <td className={`px-5 py-3 text-right text-sm font-semibold ${isOut ? "text-error" : "text-success"}`}>
-                            {isOut ? "-" : "+"}{formatCurrency(item.amount)}
+                            {isOut ? "-" : "+"}{formatCurrency(Number(item.amount))}
                           </td>
                         </tr>
                       );

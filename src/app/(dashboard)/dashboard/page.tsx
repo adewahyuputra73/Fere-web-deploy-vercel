@@ -24,10 +24,10 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import { dashboardService } from "@/features/dashboard/services";
-import { orderService } from "@/features/orders/services/order-service";
-import type { DashboardTodaySummary, TopProductItem } from "@/features/dashboard/types";
-import type { Order } from "@/features/orders/types";
+import { dashboardService } from "@/features/dashboard";
+import { orderService } from "@/features/orders";
+import type { DashboardTodaySummary, TopProductItem } from "@/features/dashboard";
+import type { Order } from "@/features/orders";
 
 type StatusFilter = "all" | "completed" | "pending";
 

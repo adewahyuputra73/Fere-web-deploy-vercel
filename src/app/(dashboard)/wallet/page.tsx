@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/layout";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency } from "@/lib/utils";
 import { walletService, BalanceCard } from "@/features/wallet";
 import type { WalletBalance, WalletHistoryItem } from "@/features/wallet";
 import { RefreshCw, Loader2, TrendingUp, Calendar, Wallet } from "lucide-react";

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/layout";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency } from "@/lib/utils";
 import { shiftService, ShiftStatusBadge } from "@/features/shifts";
 import type { ShiftStatus, ShiftHistoryItem, StartShiftRequest, EndShiftRequest } from "@/features/shifts";
 import { Clock, LogIn, LogOut, History, CheckCircle2, AlertCircle, Loader2, User } from "lucide-react";

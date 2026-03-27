@@ -1,4 +1,5 @@
 export { tableService } from "./services";
+export * from "./components";
 export type {
   Area,
   CreateAreaRequest,

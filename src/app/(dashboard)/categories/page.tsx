@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/layout";
 import {
+  Button,
+  Input,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -13,17 +13,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/components/ui/toast";
+  useToast,
+} from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { Plus, Search, X } from "lucide-react";
 import {
   CategoryTable,
   CategoryModal,
+  categoryService,
 } from "@/features/categories";
-import { categoryService } from "@/features/categories/services/category-service";
-import { Category, CategoryFormData, CategoryFilters, ProductForPicker } from "@/features/categories/types";
-import { productService } from "@/features/products/services/product-service";
+import type { Category, CategoryFormData, CategoryFilters, ProductForPicker } from "@/features/categories";
+import { productService } from "@/features/products";
 
 type StatusTab = 'all' | 'active' | 'inactive';
 

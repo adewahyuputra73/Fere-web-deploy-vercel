@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag, Loader2, RefreshCw } from "lucide-react";
 import { mockVariants } from "@/features/products/mock-data";
-import { Product, Variant } from "@/features/products/types";
-import { productService } from "@/features/products/services/product-service";
+import { productService } from "@/features/products";
+import type { Product, Variant } from "@/features/products";
 import {
     CategoryFilter,
     ProductCard,
@@ -13,10 +13,10 @@ import {
     CartItemVariant
 } from "@/features/customer-order";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
-import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils/format";
-import { storeSettingsService } from "@/features/store-settings/services/store-settings-service";
-import type { StoreInfo } from "@/features/store-settings/types";
+import { Input } from "@/components/ui";
+import { formatCurrency } from "@/lib/utils";
+import { storeSettingsService } from "@/features/store-settings";
+import type { StoreInfo } from "@/features/store-settings";
 
 export default function OrderPage() {
     const [products, setProducts] = useState<Product[]>([]);
