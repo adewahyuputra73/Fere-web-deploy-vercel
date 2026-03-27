@@ -23,9 +23,15 @@ interface LocalObject {
   width: number; height: number;
 }
 
-const TABLE_W = 80;
-const TABLE_H = 70;
 const STORAGE_KEY = 'fere-table-layout-v1';
+
+// Ukuran meja proporsional terhadap kapasitas
+function getTableSize(capacity: number): { w: number; h: number } {
+  const extra = Math.max(0, capacity - 2);
+  const w = 76 + Math.floor(extra / 2) * 14;
+  const h = 70 + Math.floor(extra / 2) * 10;
+  return { w: Math.min(w, 170), h: Math.min(h, 150) };
+}
 
 const STATUS_COLOR: Record<string, string> = {
   AVAILABLE: 'bg-green-100 border-green-300 text-green-700',
@@ -52,8 +58,8 @@ function autoPositions(tables: Table[]): Record<string, TablePos> {
   const result: Record<string, TablePos> = {};
   tables.forEach((t, i) => {
     result[t.id] = {
-      x: 40 + (i % COLS) * 120,
-      y: 40 + Math.floor(i / COLS) * 110,
+      x: 40 + (i % COLS) * 180,
+      y: 40 + Math.floor(i / COLS) * 160,
     };
   });
   return result;
@@ -97,19 +103,20 @@ function CanvasTable({ table, pos, isSelected, onSelect, onDrag }: {
   }, [isDragging, onDrag]);
 
   const colorClass = STATUS_COLOR[table.status] ?? STATUS_COLOR.AVAILABLE;
+  const { w, h } = getTableSize(table.capacity ?? 2);
 
   return (
     <div
       onMouseDown={handleMouseDown}
-      className={`absolute cursor-move flex flex-col items-center justify-center border-2 rounded-lg select-none transition-shadow
+      className={`absolute cursor-move flex flex-col items-center justify-center border-2 rounded-xl select-none transition-shadow
         ${colorClass}
         ${isSelected ? 'ring-2 ring-primary ring-offset-2 shadow-lg' : 'shadow-sm hover:shadow-md'}
       `}
-      style={{ left: pos.x, top: pos.y, width: TABLE_W, height: TABLE_H }}
-      title={`${table.name} · ${table.capacity} pax · ${table.area?.name ?? ''}`}
+      style={{ left: pos.x, top: pos.y, width: w, height: h }}
+      title={`${table.name} · ${table.capacity} kursi · ${table.area?.name ?? ''}`}
     >
-      <span className="text-xs font-bold leading-none">{table.name}</span>
-      <span className="text-[9px] opacity-70 mt-0.5">{table.capacity}p</span>
+      <span className="text-sm font-bold leading-none">{table.name}</span>
+      <span className="text-[10px] opacity-70 mt-1">{table.capacity} kursi</span>
     </div>
   );
 }
