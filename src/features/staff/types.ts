@@ -34,6 +34,7 @@ export interface StaffListResponse {
 }
 
 export interface CreateStaffRequest {
+  full_name: string;
   phone_number: string;
   role_id: string;
 }

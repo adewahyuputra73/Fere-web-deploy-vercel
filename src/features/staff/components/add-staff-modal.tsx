@@ -13,6 +13,7 @@ interface AddStaffModalProps {
 }
 
 export function AddStaffModal({ roles, onClose, onSave }: AddStaffModalProps) {
+  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [roleId, setRoleId] = useState(roles[0]?.id ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,11 +21,12 @@ export function AddStaffModal({ roles, onClose, onSave }: AddStaffModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) { showToast("Masukkan nama lengkap", "error"); return; }
     if (!phone.trim()) { showToast("Masukkan nomor HP", "error"); return; }
     if (!roleId) { showToast("Pilih role terlebih dahulu", "error"); return; }
     setIsSubmitting(true);
     try {
-      await onSave({ phone_number: phone.trim(), role_id: roleId });
+      await onSave({ full_name: fullName.trim(), phone_number: phone.trim(), role_id: roleId });
       onClose();
     } catch {
       showToast("Gagal menambahkan staff", "error");
@@ -42,6 +44,13 @@ export function AddStaffModal({ roles, onClose, onSave }: AddStaffModalProps) {
             Staff akan diundang melalui nomor HP. Jika belum terdaftar, akun akan dibuat otomatis.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Nama Lengkap"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nama staff"
+              required
+            />
             <Input
               label="Nomor HP (format: 628xxx)"
               value={phone}
