@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatCurrency, formatDateTime } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
 } from "../types";
 import {
   ArrowLeft,
+  ArrowRight,
   User,
   MapPin,
   MessageSquare,
@@ -21,15 +23,41 @@ import {
   Calendar,
   Clock,
   Package,
+  CheckCircle2,
 } from "lucide-react";
 
 interface TransactionDetailProps {
   order: Order;
   onBack: () => void;
+  onUpdateStatus?: (orderId: string | number, status: string) => Promise<void>;
 }
 
-export function TransactionDetail({ order, onBack }: TransactionDetailProps) {
+const STATUS_FLOW = [
+  { value: "PROCESSING", label: "Diproses" },
+  { value: "READY",      label: "Siap" },
+  { value: "DELIVERED",  label: "Dikirim" },
+  { value: "COMPLETED",  label: "Selesai" },
+];
+
+const STATUS_NEXT_ACTION: Record<string, { label: string; next: string; variant: "default" | "primary" | "outline" }> = {
+  PROCESSING: { label: "Tandai Siap",    next: "READY",     variant: "default" },
+  READY:      { label: "Tandai Dikirim", next: "DELIVERED", variant: "default" },
+  DELIVERED:  { label: "Tandai Selesai", next: "COMPLETED", variant: "default" },
+};
+
+export function TransactionDetail({ order, onBack, onUpdateStatus }: TransactionDetailProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
   const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const nextAction = STATUS_NEXT_ACTION[order.fulfillmentStatus ?? ""] ?? null;
+  const currentStepIdx = STATUS_FLOW.findIndex((s) => s.value === order.fulfillmentStatus);
+
+  const handleStatusAction = async () => {
+    if (!nextAction || !onUpdateStatus) return;
+    setIsUpdating(true);
+    await onUpdateStatus(order.id, nextAction.next);
+    setIsUpdating(false);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -77,6 +105,66 @@ export function TransactionDetail({ order, onBack }: TransactionDetailProps) {
             </p>
           </div>
         </div>
+
+        {/* Status progression */}
+        {STATUS_FLOW.length > 0 && order.fulfillmentStatus && (
+          <div className="mt-5 pt-5 border-t border-border">
+            <div className="flex items-center gap-2 mb-4">
+              {STATUS_FLOW.map((step, idx) => {
+                const isDone = idx < currentStepIdx;
+                const isCurrent = idx === currentStepIdx;
+                return (
+                  <div key={step.value} className="flex items-center gap-2 flex-1">
+                    <div className="flex flex-col items-center gap-1 min-w-0">
+                      <div
+                        className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
+                          isDone
+                            ? "bg-success text-white"
+                            : isCurrent
+                            ? "bg-primary text-white"
+                            : "bg-border text-text-disabled"
+                        }`}
+                      >
+                        {isDone ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                      </div>
+                      <span
+                        className={`text-[11px] font-medium text-center leading-none ${
+                          isDone
+                            ? "text-success"
+                            : isCurrent
+                            ? "text-primary"
+                            : "text-text-disabled"
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                    {idx < STATUS_FLOW.length - 1 && (
+                      <div
+                        className={`flex-1 h-0.5 mb-4 transition-colors ${
+                          idx < currentStepIdx ? "bg-success" : "bg-border"
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {nextAction && onUpdateStatus && (
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleStatusAction}
+                  isLoading={isUpdating}
+                  className="gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  {nextAction.label}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

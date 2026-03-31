@@ -9,7 +9,7 @@ import type { Product, ChannelPrice, CreateProductRequest, UpdateProductRequest,
  * Maps API response to frontend Product type.
  * Handles confirmed API shape from GET /products.
  */
-function mapApiProduct(raw: any): Product {
+export function mapApiProduct(raw: any): Product {
   // Channel prices: API returns raw.prices[] with channel "POS"/"GOFOOD" etc.
   const rawPrices: any[] = raw.prices ?? raw.channel_prices ?? raw.channelPrices ?? [];
   const channelPrices: ChannelPrice[] = rawPrices.map((cp: any) => ({

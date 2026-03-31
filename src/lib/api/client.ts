@@ -15,10 +15,19 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Only access localStorage on client side
     if (typeof window !== "undefined") {
-      // Primary: dedicated auth_token key (written on login)
-      let token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      // Priority 1: URL param ?t=TOKEN — untuk QR code customer order
+      // Contoh: https://pos.example.com/order?t=BEARER_TOKEN
+      let token: string | null = null;
+      try {
+        token = new URLSearchParams(window.location.search).get("t");
+      } catch {}
 
-      // Fallback: read from Zustand persist storage if primary is missing
+      // Priority 2: dedicated auth_token key (written on login)
+      if (!token) {
+        token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      }
+
+      // Priority 3: Zustand persist storage
       if (!token) {
         try {
           const zustandRaw = localStorage.getItem("auth-storage");
@@ -51,12 +60,15 @@ apiClient.interceptors.response.use(
 
     // Handle 401 Unauthorized
     if (error.response?.status === 401 && originalRequest) {
-      // Clear auth data and redirect to login
       if (typeof window !== "undefined") {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        window.location.href = "/login";
+        // Jangan redirect dari halaman customer order — biarkan page handle sendiri
+        const isCustomerRoute = window.location.pathname.startsWith("/order");
+        if (!isCustomerRoute) {
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
+          window.location.href = "/login";
+        }
       }
     }
 

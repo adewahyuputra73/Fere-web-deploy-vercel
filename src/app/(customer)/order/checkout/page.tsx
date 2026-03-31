@@ -10,8 +10,7 @@ import { mockTaxSettings } from "@/features/store-settings/mock-data";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui";
-import { orderService } from "@/features/orders/services/order-service";
-import { tableService } from "@/features/tables/services/table-service";
+import { pubOrderService, pubTableService } from "@/features/customer-order/services/pub-services";
 import type { Table } from "@/features/tables/types";
 import type { PaymentMethod } from "@/features/orders/types";
 
@@ -34,7 +33,7 @@ export default function CheckoutPage() {
     });
 
     useEffect(() => {
-        tableService.list().then(setTables).catch(() => {});
+        pubTableService.list().then(setTables).catch(() => {});
     }, []);
 
     const subtotal = getSubtotal();
@@ -50,7 +49,7 @@ export default function CheckoutPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const order = await orderService.checkout({
+            const order = await pubOrderService.checkout({
                 order_type: formData.fulfillmentType === "dine_in" ? "DINE_IN" : "TAKEAWAY",
                 table_number: formData.fulfillmentType === "dine_in" && formData.tableName ? formData.tableName : undefined,
                 items: items.map((item) => ({

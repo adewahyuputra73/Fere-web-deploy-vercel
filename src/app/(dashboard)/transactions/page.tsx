@@ -14,6 +14,7 @@ import {
 } from "@/features/transactions/types";
 import { filterOrders, getOrderStats } from "@/features/transactions/mock-data";
 import { orderService } from "@/features/orders/services/order-service";
+import type { FulfillmentStatus } from "@/features/orders/types";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import {
@@ -36,8 +37,9 @@ function mapStatus(raw: any): OrderStatus {
   const ful = (raw.fulfillment_status ?? "").toUpperCase();
   if (ful === "COMPLETED") return "completed";
   if (ful === "CANCELLED" || pay === "CANCELLED") return "failed";
+  if (ful === "DELIVERED") return "shipped";
+  if (ful === "READY" || ful === "PROCESSING") return "ready";
   if (pay === "UNPAID") return "unpaid";
-  if (ful === "READY" || ful === "DELIVERED") return "ready";
   if (ful === "PENDING") return "unpaid";
   return "unpaid";
 }
@@ -74,6 +76,7 @@ function mapApiOrder(raw: any): Order {
       subtotal: Number(item.subtotal ?? item.price ?? 0),
     })),
     cashierName: raw.kasirDetail?.name ?? raw.cashier_name ?? "",
+    fulfillmentStatus: (raw.fulfillment_status ?? "").toUpperCase(),
   };
 }
 
@@ -128,6 +131,23 @@ export default function TransactionsPage() {
   }, [showToast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleUpdateStatus = useCallback(async (orderId: string | number, newStatus: string) => {
+    try {
+      await orderService.updateStatus(orderId, { status: newStatus as FulfillmentStatus });
+      // Re-fetch silently (no loading spinner) and sync selectedOrder
+      const raw = await orderService.list({ limit: 100 });
+      const mapped = (Array.isArray(raw) ? raw : []).map(mapApiOrder);
+      setOrders(mapped);
+      setSelectedOrder((prev) => {
+        if (!prev || String(prev.id) !== String(orderId)) return prev;
+        return mapped.find((o) => String(o.id) === String(orderId)) ?? prev;
+      });
+      showToast("Status pesanan berhasil diperbarui", "success");
+    } catch {
+      showToast("Gagal memperbarui status pesanan", "error");
+    }
+  }, [showToast]);
 
   // Computed
   const mergedFilters = useMemo(
@@ -256,7 +276,7 @@ export default function TransactionsPage() {
             { label: selectedOrder.orderNumber },
           ]}
         />
-        <TransactionDetail order={selectedOrder} onBack={handleBackToList} />
+        <TransactionDetail order={selectedOrder} onBack={handleBackToList} onUpdateStatus={handleUpdateStatus} />
       </div>
     );
   }
@@ -435,6 +455,7 @@ export default function TransactionsPage() {
         onToggleSelectAll={handleToggleSelectAll}
         onViewDetail={handleViewDetail}
         onDelete={handleDelete}
+        onUpdateStatus={handleUpdateStatus}
       />
 
       {/* Delete Confirmation Modal */}

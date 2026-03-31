@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag, Loader2, RefreshCw } from "lucide-react";
 import { mockVariants } from "@/features/products/mock-data";
-import { productService } from "@/features/products";
 import type { Product, Variant } from "@/features/products";
 import {
     CategoryFilter,
@@ -12,10 +11,10 @@ import {
     VariantSelector,
     CartItemVariant
 } from "@/features/customer-order";
+import { pubProductService, pubStoreService } from "@/features/customer-order/services/pub-services";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
 import { Input } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
-import { storeSettingsService } from "@/features/store-settings";
 import type { StoreInfo } from "@/features/store-settings";
 
 export default function OrderPage() {
@@ -36,7 +35,7 @@ export default function OrderPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await productService.list();
+            const data = await pubProductService.list();
             setProducts(data);
         } catch {
             setError("Gagal memuat menu. Silakan coba lagi.");
@@ -50,7 +49,7 @@ export default function OrderPage() {
     }, [fetchProducts]);
 
     useEffect(() => {
-        storeSettingsService.my().then(setStoreInfo).catch(() => {});
+        pubStoreService.my().then(setStoreInfo).catch(() => {});
     }, []);
 
     // Derive categories from products

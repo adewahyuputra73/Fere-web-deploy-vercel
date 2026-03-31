@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShoppingCart,
+  ArrowRight,
 } from "lucide-react";
 
 interface TransactionTableProps {
@@ -35,7 +36,14 @@ interface TransactionTableProps {
   onToggleSelectAll: () => void;
   onViewDetail: (order: Order) => void;
   onDelete: (order: Order) => void;
+  onUpdateStatus?: (orderId: string | number, status: string) => Promise<void>;
 }
+
+const STATUS_NEXT: Record<string, { label: string; value: string; colorClass: string }> = {
+  PROCESSING: { label: "Tandai Siap", value: "READY", colorClass: "text-warning hover:bg-warning/5" },
+  READY:      { label: "Tandai Dikirim", value: "DELIVERED", colorClass: "text-primary hover:bg-primary/5" },
+  DELIVERED:  { label: "Tandai Selesai", value: "COMPLETED", colorClass: "text-success hover:bg-success/5" },
+};
 
 const PAGE_SIZE = 10;
 
@@ -46,8 +54,17 @@ export function TransactionTable({
   onToggleSelectAll,
   onViewDetail,
   onDelete,
+  onUpdateStatus,
 }: TransactionTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [updatingId, setUpdatingId] = useState<string | number | null>(null);
+
+  const handleStatusAction = async (orderId: string | number, nextStatus: string) => {
+    if (!onUpdateStatus) return;
+    setUpdatingId(orderId);
+    await onUpdateStatus(orderId, nextStatus);
+    setUpdatingId(null);
+  };
   const [sortField, setSortField] = useState<'orderDate' | 'totalPrice'>('orderDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -200,6 +217,28 @@ export function TransactionTable({
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      {(() => {
+                        const next = STATUS_NEXT[order.fulfillmentStatus ?? ""];
+                        if (!next || !onUpdateStatus) return null;
+                        const isUpdating = updatingId === order.id;
+                        return (
+                          <button
+                            onClick={() => handleStatusAction(order.id, next.value)}
+                            disabled={isUpdating}
+                            className={cn(
+                              "p-2 rounded-lg transition-colors disabled:opacity-50",
+                              next.colorClass
+                            )}
+                            title={next.label}
+                          >
+                            {isUpdating ? (
+                              <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                            ) : (
+                              <ArrowRight className="h-4 w-4" />
+                            )}
+                          </button>
+                        );
+                      })()}
                       {(order.status === 'completed' || order.status === 'failed') && (
                         <button
                           onClick={() => onDelete(order)}

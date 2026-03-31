@@ -4,8 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Star, CheckCircle2, Loader2 } from "lucide-react";
-import { orderService } from "@/features/orders/services/order-service";
-import { customerService } from "@/features/customers/services/customer-service";
+import { pubOrderService, pubCustomerService } from "@/features/customer-order/services/pub-services";
 
 type PageState = "loading" | "no_account" | "form" | "submitted" | "error";
 
@@ -25,7 +24,7 @@ function ReviewContent() {
     useEffect(() => {
         if (!orderId) { setPageState("error"); return; }
 
-        orderService.detail(orderId)
+        pubOrderService.detail(orderId)
             .then((order: any) => {
                 const cid = order.customer_id ?? null;
 
@@ -46,7 +45,7 @@ function ReviewContent() {
         setIsSubmitting(true);
         setErrorMsg("");
         try {
-            await customerService.createReview(customerId, {
+            await pubCustomerService.createReview(customerId, {
                 rating,
                 comment,
                 order_id: orderId,

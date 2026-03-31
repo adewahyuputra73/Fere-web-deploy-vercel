@@ -48,8 +48,11 @@ hoppscotch-env.json
 hoppscotch-collection.json
 *.7z
 
-# local dev notes (tidak perlu di-track)
+# local dev notes & debug output (tidak perlu di-track)
 CATATAN-API.md
+build_errors.txt
+typescript_errors.txt
+*.pdf
 
 # Claude Code project instructions (local only)
 CLAUDE.md

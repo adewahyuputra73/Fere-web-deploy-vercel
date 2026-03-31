@@ -26,7 +26,7 @@ export interface CheckoutRequest {
 export type FulfillmentStatus = "PROCESSING" | "READY" | "DELIVERED" | "COMPLETED" | "CANCELLED";
 
 export interface UpdateOrderStatusRequest {
-  fulfillment_status: FulfillmentStatus;
+  status: FulfillmentStatus;
 }
 
 export interface VoidOrderRequest {
@@ -35,7 +35,7 @@ export interface VoidOrderRequest {
 
 export interface PayOrderRequest {
   payment_method: PaymentMethod;
-  cash_given?: number;
+  paid_amount?: number;
 }
 
 export interface OrderSummaryCards {

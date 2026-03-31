@@ -66,6 +66,7 @@ export interface Order {
   deletedAt?: string;
   deletedBy?: string;
   deleteReason?: string;
+  fulfillmentStatus?: string; // raw BE value: PROCESSING | READY | DELIVERED | COMPLETED | CANCELLED
 }
 
 // Filter Types
