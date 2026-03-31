@@ -115,6 +115,11 @@ function CanvasTable({ table, pos, isSelected, onSelect, onDrag }: {
       style={{ left: pos.x, top: pos.y, width: w, height: h }}
       title={`${table.name} · ${table.capacity} kursi · ${table.area?.name ?? ''}`}
     >
+      {table.area?.name && (
+        <span className="text-[9px] font-semibold opacity-60 uppercase tracking-wide leading-none mb-0.5 px-1.5 py-0.5 rounded-full bg-black/10">
+          {table.area.name.length > 8 ? table.area.name.slice(0, 8) + '…' : table.area.name}
+        </span>
+      )}
       <span className="text-sm font-bold leading-none">{table.name}</span>
       <span className="text-[10px] opacity-70 mt-1">{table.capacity} kursi</span>
     </div>

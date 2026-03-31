@@ -25,7 +25,6 @@ export default function ShiftPage() {
   const [submittingOpen, setSubmittingOpen] = useState(false);
   const [openError, setOpenError] = useState("");
 
-  const [closingCash, setClosingCash] = useState("");
   const [cashDeposited, setCashDeposited] = useState("");
   const [note, setNote] = useState("");
   const [submittingClose, setSubmittingClose] = useState(false);
@@ -84,18 +83,16 @@ export default function ShiftPage() {
 
   const handleCloseShift = async (e: React.FormEvent) => {
     e.preventDefault();
-    const closing = parseFloat(closingCash);
     const deposited = parseFloat(cashDeposited);
-    if (isNaN(closing) || closing < 0) { setCloseError("Masukkan jumlah kas akhir yang valid"); return; }
     if (isNaN(deposited) || deposited < 0) { setCloseError("Masukkan jumlah kas disetor yang valid"); return; }
     setSubmittingClose(true);
     setCloseError("");
     try {
-      const payload: EndShiftRequest = { closing_cash: closing, cash_deposited: deposited };
+      const payload: EndShiftRequest = { cash_deposited: deposited };
       if (note.trim()) payload.note = note.trim();
       await shiftService.end(payload);
       setSuccessMsg("Shift berhasil ditutup!");
-      setClosingCash(""); setCashDeposited(""); setNote("");
+      setCashDeposited(""); setNote("");
       await fetchStatus();
       await fetchHistory();
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -162,14 +159,12 @@ export default function ShiftPage() {
               <h2 className="text-base font-bold text-text-primary">Tutup Shift</h2>
             </div>
             <form onSubmit={handleCloseShift} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5">
-                  Kas Akhir (Rp) <span className="text-red-500">*</span>
-                </label>
-                <input type="number" min="0" value={closingCash} onChange={(e) => setClosingCash(e.target.value)}
-                  placeholder="0" required
-                  className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary transition-colors" />
-              </div>
+              {shift.expected_cash && (
+                <div className="bg-background rounded-lg p-3 flex items-center justify-between">
+                  <p className="text-xs text-text-secondary">Estimasi Kas (sistem)</p>
+                  <p className="text-sm font-bold text-text-primary">{formatCurrency(Number(shift.expected_cash))}</p>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5">
                   Kas Disetor (Rp) <span className="text-red-500">*</span>
@@ -177,6 +172,7 @@ export default function ShiftPage() {
                 <input type="number" min="0" value={cashDeposited} onChange={(e) => setCashDeposited(e.target.value)}
                   placeholder="0" required
                   className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary transition-colors" />
+                <p className="text-xs text-text-disabled mt-1">Masukkan jumlah uang tunai yang disetor ke kasir utama</p>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5">Catatan (opsional)</label>
@@ -260,7 +256,8 @@ export default function ShiftPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Mulai</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Selesai</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary">Kas Awal</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary">Kas Akhir</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary">Kas Disetor</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary">Selisih</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Status</th>
                 </tr>
               </thead>
@@ -279,7 +276,14 @@ export default function ShiftPage() {
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{formatDateTime(item.start_time)}</td>
                     <td className="px-4 py-3 text-text-secondary whitespace-nowrap">{item.end_time ? formatDateTime(item.end_time) : "-"}</td>
                     <td className="px-4 py-3 text-right text-text-primary font-medium">{formatCurrency(Number(item.opening_cash ?? 0))}</td>
-                    <td className="px-4 py-3 text-right text-text-primary font-medium">{item.closing_cash ? formatCurrency(Number(item.closing_cash)) : "-"}</td>
+                    <td className="px-4 py-3 text-right text-text-primary font-medium">{item.cash_deposited ? formatCurrency(Number(item.cash_deposited)) : "-"}</td>
+                    <td className="px-4 py-3 text-right font-semibold">
+                      {item.cash_difference != null ? (
+                        <span className={Number(item.cash_difference) < 0 ? "text-red-500" : "text-emerald-600"}>
+                          {formatCurrency(Number(item.cash_difference))}
+                        </span>
+                      ) : "-"}
+                    </td>
                     <td className="px-4 py-3"><ShiftStatusBadge status={item.status} /></td>
                   </tr>
                 ))}

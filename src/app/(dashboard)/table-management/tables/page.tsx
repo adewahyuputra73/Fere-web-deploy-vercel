@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   tableService,
   TableFormDialog,
@@ -98,8 +98,12 @@ export default function TablesPage() {
       showToast("Meja berhasil ditambahkan", "success");
       await fetchData();
       setShowForm(false);
-    } catch {
-      showToast("Gagal menambah meja", "error");
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const msg = status === 500 || status === 409
+        ? "Nama meja sudah digunakan. Gunakan nama berbeda tiap area, contoh: A1, B1, IN-1"
+        : (err?.response?.data?.message ?? err?.message ?? "Gagal menambah meja");
+      showToast(msg, "error");
     }
   };
 
@@ -216,7 +220,7 @@ export default function TablesPage() {
         </Select>
       </div>
 
-      {/* Table */}
+      {/* Table — grouped by area */}
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         <Table>
           <TableHeader>
@@ -234,7 +238,6 @@ export default function TablesPage() {
                 />
               </TableHead>
               <TableHead className="font-semibold text-xs">Nama Meja</TableHead>
-              <TableHead className="font-semibold text-xs">Area</TableHead>
               <TableHead className="font-semibold text-xs text-center">Kapasitas</TableHead>
               <TableHead className="font-semibold text-xs text-center">Status</TableHead>
               <TableHead className="font-semibold text-xs text-center">QR</TableHead>
@@ -242,73 +245,101 @@ export default function TablesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((t) => {
-              const sc = statusConfig[t.status] || { label: t.status, variant: "default" as const };
-              return (
-                <TableRow key={t.id} className="hover:bg-background/50 transition-colors">
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(t.id)}
-                      onChange={() =>
-                        setSelectedIds((prev) =>
-                          prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]
-                        )
-                      }
-                      className="h-4 w-4 rounded border-border text-primary"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold bg-purple-50 text-purple-700">
-                        {t.name}
-                      </div>
-                      <span className="text-sm font-medium text-text-primary">Meja {t.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-text-secondary">{t.area?.name || ""}</TableCell>
-                  <TableCell className="text-center text-sm text-text-primary">{t.capacity} kursi</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={sc.variant} size="sm">
-                      {sc.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setQrTable(t)}
-                      className="h-8 w-8 p-0"
-                      title="QR Code"
-                    >
-                      <QrCode className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingTable(t)}
-                        className="h-8 w-8 p-0"
-                        title="Ubah"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(t)}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        title="Hapus"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {(() => {
+              // Group filtered tables by area
+              const groups: { areaName: string; areaId: string; tables: ApiTable[] }[] = [];
+              filtered.forEach((t) => {
+                const areaId = t.area_id || "unknown";
+                const areaName = t.area?.name || "Tanpa Area";
+                const existing = groups.find((g) => g.areaId === areaId);
+                if (existing) existing.tables.push(t);
+                else groups.push({ areaId, areaName, tables: [t] });
+              });
+
+              return groups.map((group) => (
+                <React.Fragment key={group.areaId}>
+                  {/* Area divider row */}
+                  <TableRow key={`area-${group.areaId}`} className="bg-primary/5 border-b border-primary/10">
+                    <TableCell colSpan={6} className="py-2 px-4">
+                      <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                        {group.areaName}
+                        <span className="ml-2 font-normal text-text-secondary normal-case tracking-normal">
+                          {group.tables.length} meja
+                        </span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Tables in this area */}
+                  {group.tables.map((t) => {
+                    const sc = statusConfig[t.status] || { label: t.status, variant: "default" as const };
+                    return (
+                      <TableRow key={t.id} className="hover:bg-background/50 transition-colors">
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(t.id)}
+                            onChange={() =>
+                              setSelectedIds((prev) =>
+                                prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]
+                              )
+                            }
+                            className="h-4 w-4 rounded border-border text-primary"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold bg-purple-50 text-purple-700">
+                              {t.name}
+                            </div>
+                            <span className="text-sm font-medium text-text-primary">Meja {t.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-text-primary">{t.capacity} kursi</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={sc.variant} size="sm">
+                            {sc.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setQrTable(t)}
+                            className="h-8 w-8 p-0"
+                            title="QR Code"
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTable(t)}
+                              className="h-8 w-8 p-0"
+                              title="Ubah"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(t)}
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                              title="Hapus"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </React.Fragment>
+              ));
+            })()}
           </TableBody>
         </Table>
       </div>

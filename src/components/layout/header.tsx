@@ -18,6 +18,8 @@ import {
   CheckCheck,
   Loader2,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -144,7 +146,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
 export function Header() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { setSidebarMobileOpen, sidebarCollapsed } = useUIStore();
+  const { setSidebarMobileOpen, sidebarCollapsed, theme, setTheme } = useUIStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -202,6 +204,21 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-xl hover:bg-background"
+            title={theme === "dark" ? "Beralih ke Light Mode" : "Beralih ke Dark Mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5 text-text-secondary hover:text-primary transition-colors" />
+            ) : (
+              <Moon className="h-5 w-5 text-text-secondary hover:text-primary transition-colors" />
+            )}
+          </Button>
+
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <Button

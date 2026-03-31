@@ -126,69 +126,7 @@ export default function CheckoutPage() {
                     {/* ── Left: Form fields ── */}
                     <div className="lg:col-span-7 space-y-5">
 
-                        {/* Section 1 — Customer Info */}
-                        <div
-                            className="rounded-[22px] p-6"
-                            style={{
-                                backgroundColor: '#FFFFFF',
-                                border: '1.5px solid rgba(124,74,30,0.1)',
-                                boxShadow: '0 2px 12px rgba(28,10,0,0.04)',
-                            }}
-                        >
-                            <div className="flex items-center gap-3 mb-5">
-                                <div
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ backgroundColor: '#FEF3C7' }}
-                                >
-                                    <User className="h-4 w-4" style={{ color: '#D97706' }} />
-                                </div>
-                                <h2 className="text-[15px] font-black tracking-tight" style={{ color: '#1C0A00' }}>
-                                    Informasi Pelanggan
-                                </h2>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: '#9C7D58' }}>
-                                        Nama Lengkap
-                                    </label>
-                                    <Input
-                                        required
-                                        placeholder="Masukkan nama Anda"
-                                        className="h-12 rounded-2xl text-sm font-medium border-2 transition-colors"
-                                        style={inputBaseStyle}
-                                        onFocus={onInputFocus}
-                                        onBlur={onInputBlur}
-                                        value={formData.customerName}
-                                        onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: '#9C7D58' }}>
-                                        Nomor WhatsApp
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
-                                            <span className="text-sm font-black" style={{ color: '#9C7D58' }}>+62</span>
-                                        </div>
-                                        <Input
-                                            required
-                                            type="tel"
-                                            placeholder="812-3456-7890"
-                                            className="pl-14 h-12 rounded-2xl text-sm font-medium border-2 transition-colors"
-                                            style={inputBaseStyle}
-                                            onFocus={onInputFocus}
-                                            onBlur={onInputBlur}
-                                            value={formData.customerPhone}
-                                            onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Section 2 — Fulfillment */}
+                            {/* Section 1 — Fulfillment */}
                         <div
                             className="rounded-[22px] p-6"
                             style={{
@@ -286,11 +224,26 @@ export default function CheckoutPage() {
                                         style={inputBaseStyle}
                                     >
                                         <option value="">-- Pilih meja --</option>
-                                        {tables.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name}{t.area?.name ? ` · ${t.area.name}` : ""}
-                                            </option>
-                                        ))}
+                                        {(() => {
+                                            // Group tables by area
+                                            const groups: { areaId: string; areaName: string; tables: typeof tables }[] = [];
+                                            tables.forEach((t) => {
+                                                const areaId = t.area_id || "unknown";
+                                                const areaName = t.area?.name || "Tanpa Area";
+                                                const existing = groups.find((g) => g.areaId === areaId);
+                                                if (existing) existing.tables.push(t);
+                                                else groups.push({ areaId, areaName, tables: [t] });
+                                            });
+                                            return groups.map((group) => (
+                                                <optgroup key={group.areaId} label={group.areaName}>
+                                                    {group.tables.map((t) => (
+                                                        <option key={t.id} value={t.id}>
+                                                            Meja {t.name}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            ));
+                                        })()}
                                     </select>
                                 </div>
                             )}
@@ -369,6 +322,68 @@ export default function CheckoutPage() {
                                 value={formData.notes}
                                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             />
+                        </div>
+
+                        {/* Section 5 — Customer Info (last, after order details) */}
+                        <div
+                            className="rounded-[22px] p-6"
+                            style={{
+                                backgroundColor: '#FFFFFF',
+                                border: '1.5px solid rgba(124,74,30,0.1)',
+                                boxShadow: '0 2px 12px rgba(28,10,0,0.04)',
+                            }}
+                        >
+                            <div className="flex items-center gap-3 mb-5">
+                                <div
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                                    style={{ backgroundColor: '#FEF3C7' }}
+                                >
+                                    <User className="h-4 w-4" style={{ color: '#D97706' }} />
+                                </div>
+                                <h2 className="text-[15px] font-black tracking-tight" style={{ color: '#1C0A00' }}>
+                                    Informasi Pelanggan
+                                </h2>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: '#9C7D58' }}>
+                                        Nama Lengkap
+                                    </label>
+                                    <Input
+                                        required
+                                        placeholder="Masukkan nama Anda"
+                                        className="h-12 rounded-2xl text-sm font-medium border-2 transition-colors"
+                                        style={inputBaseStyle}
+                                        onFocus={onInputFocus}
+                                        onBlur={onInputBlur}
+                                        value={formData.customerName}
+                                        onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: '#9C7D58' }}>
+                                        Nomor WhatsApp
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
+                                            <span className="text-sm font-black" style={{ color: '#9C7D58' }}>+62</span>
+                                        </div>
+                                        <Input
+                                            required
+                                            type="tel"
+                                            placeholder="812-3456-7890"
+                                            className="pl-14 h-12 rounded-2xl text-sm font-medium border-2 transition-colors"
+                                            style={inputBaseStyle}
+                                            onFocus={onInputFocus}
+                                            onBlur={onInputBlur}
+                                            value={formData.customerPhone}
+                                            onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

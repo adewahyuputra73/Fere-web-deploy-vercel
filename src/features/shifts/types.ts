@@ -64,7 +64,6 @@ export interface StartShiftRequest {
 }
 
 export interface EndShiftRequest {
-  closing_cash: number;
   cash_deposited: number;
   note?: string;
 }

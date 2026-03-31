@@ -201,56 +201,6 @@ export function PrinterSettingsForm({ settings, onSave }: PrinterSettingsFormPro
         </CardContent>
       </Card>
 
-      {/* Auto Print */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cetak Otomatis</CardTitle>
-          <CardDescription>Atur pencetakan otomatis setelah transaksi</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-4 p-3 rounded-xl hover:bg-background/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium text-text-primary">Cetak Struk Otomatis</p>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Otomatis cetak struk setelah transaksi selesai
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setLocal((prev) => ({ ...prev, auto_print_receipt: !prev.auto_print_receipt }))
-              }
-            >
-              {local.auto_print_receipt ? (
-                <ToggleRight className="h-7 w-7 text-success" />
-              ) : (
-                <ToggleLeft className="h-7 w-7 text-text-disabled" />
-              )}
-            </button>
-          </div>
-          <div className="flex items-center justify-between gap-4 p-3 rounded-xl hover:bg-background/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium text-text-primary">Cetak Order Dapur Otomatis</p>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Otomatis cetak pesanan ke printer dapur
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setLocal((prev) => ({ ...prev, auto_print_kitchen: !prev.auto_print_kitchen }))
-              }
-            >
-              {local.auto_print_kitchen ? (
-                <ToggleRight className="h-7 w-7 text-success" />
-              ) : (
-                <ToggleLeft className="h-7 w-7 text-text-disabled" />
-              )}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={handleTestPrint} isLoading={isTesting}>
           <TestTube className="h-4 w-4" />

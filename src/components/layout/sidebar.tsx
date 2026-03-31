@@ -24,12 +24,11 @@ import {
   FlaskConical,
   Ruler,
   FolderOpen,
-  Truck,
   BookOpen,
+  TrendingDown,
   TrendingUp,
   Star,
   Ticket,
-  Coins,
   MapPin,
   LayoutGrid,
   Armchair,
@@ -71,6 +70,12 @@ const navItems: NavItem[] = [
     label: "Laporan",
     href: "/reports",
     icon: <FileText className="h-5 w-5" />,
+    roles: ["owner"],
+  },
+  {
+    label: "Pengeluaran",
+    href: "/pengeluaran",
+    icon: <TrendingDown className="h-5 w-5" />,
     roles: ["owner"],
   },
   {
@@ -124,12 +129,6 @@ const pelangganNavItems: NavItem[] = [
     icon: <Ticket className="h-5 w-5" />,
     roles: ["owner"],
   },
-  {
-    label: "Koin",
-    href: "/customers/coins",
-    icon: <Coins className="h-5 w-5" />,
-    roles: ["owner"],
-  },
 ];
 
 // Manajemen Meja menu items
@@ -178,12 +177,6 @@ const inventoryNavItems: NavItem[] = [
     roles: ["owner"],
   },
   {
-    label: "Supplier",
-    href: "/inventory/suppliers",
-    icon: <Truck className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
     label: "Resep",
     href: "/inventory/recipes",
     icon: <BookOpen className="h-5 w-5" />,
@@ -192,12 +185,6 @@ const inventoryNavItems: NavItem[] = [
 ];
 
 const bottomNavItems: NavItem[] = [
-  {
-    label: "Store Settings",
-    href: "/store",
-    icon: <Store className="h-5 w-5" />,
-    roles: ["owner"],
-  },
   {
     label: "Cabang",
     href: "/outlets",
@@ -367,18 +354,20 @@ export function Sidebar() {
             ))}
           </>
         )}
-      </nav>
 
-      {/* Bottom Navigation */}
-      <div className="px-3 mt-auto pt-4 border-t border-secondary-light dark:border-gray-200">
-        <p className={cn(
-          "text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-3 mb-3",
-          sidebarCollapsed && "hidden"
-        )}>Pengaturan</p>
-        {filterByRole(bottomNavItems).map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </div>
+        {/* Pengaturan Section */}
+        {filterByRole(bottomNavItems).length > 0 && (
+          <>
+            <p className={cn(
+              "text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-3 mb-3 mt-6",
+              sidebarCollapsed && "hidden"
+            )}>Pengaturan</p>
+            {filterByRole(bottomNavItems).map((item) => (
+              <NavLink key={item.href} item={item} />
+            ))}
+          </>
+        )}
+      </nav>
 
       {/* Collapse Button (Desktop) */}
       <button

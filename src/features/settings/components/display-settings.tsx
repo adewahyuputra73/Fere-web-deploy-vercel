@@ -13,9 +13,6 @@ import { useToast } from "@/components/ui";
 import { useUIStore } from "@/stores/uiStore";
 import { cn } from "@/lib/utils";
 import {
-  Monitor,
-  Sun,
-  Moon,
   Save,
   ToggleLeft,
   ToggleRight,
@@ -25,13 +22,7 @@ import {
   Rows3,
   PanelLeftClose,
 } from "lucide-react";
-import { DisplaySettings as DisplaySettingsType, THEME_OPTIONS } from "../types";
-
-const THEME_ICONS: Record<string, React.ElementType> = {
-  Sun: Sun,
-  Moon: Moon,
-  Monitor: Monitor,
-};
+import { DisplaySettings as DisplaySettingsType } from "../types";
 
 interface DisplaySettingsFormProps {
   settings: DisplaySettingsType;
@@ -44,7 +35,6 @@ export function DisplaySettingsForm({ settings, onSave }: DisplaySettingsFormPro
   const [local, setLocal] = useState<DisplaySettingsType>({ ...settings });
 
   // Direct access to UI store for instant preview
-  const setTheme = useUIStore((s) => s.setTheme);
   const setSidebarCollapsed = useUIStore((s) => s.setSidebarCollapsed);
 
   const handleToggle = (field: keyof DisplaySettingsType) => {
@@ -59,12 +49,6 @@ export function DisplaySettingsForm({ settings, onSave }: DisplaySettingsFormPro
     });
   };
 
-  const handleThemeChange = (theme: DisplaySettingsType["theme"]) => {
-    setLocal((prev) => ({ ...prev, theme }));
-    // Apply theme instantly for live preview
-    setTheme(theme);
-  };
-
   const handleSubmit = async () => {
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -75,59 +59,6 @@ export function DisplaySettingsForm({ settings, onSave }: DisplaySettingsFormPro
 
   return (
     <div className="space-y-6">
-      {/* Theme */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center">
-              <Monitor className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Tema</CardTitle>
-              <CardDescription>Pilih tema tampilan aplikasi</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-3">
-            {THEME_OPTIONS.map((opt) => {
-              const ThemeIcon = THEME_ICONS[opt.icon] || Monitor;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleThemeChange(opt.value as DisplaySettingsType["theme"])}
-                  className={cn(
-                    "flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all",
-                    local.theme === opt.value
-                      ? "bg-primary-light border-primary"
-                      : "bg-surface border-border hover:border-primary/50"
-                  )}
-                >
-                  <ThemeIcon
-                    className={cn(
-                      "h-8 w-8",
-                      local.theme === opt.value ? "text-primary" : "text-text-disabled"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-sm font-semibold",
-                      local.theme === opt.value ? "text-primary" : "text-text-secondary"
-                    )}
-                  >
-                    {opt.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-text-secondary mt-3">
-            💡 Tema diterapkan langsung secara instan saat dipilih.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Display Options */}
       <Card>
         <CardHeader>
