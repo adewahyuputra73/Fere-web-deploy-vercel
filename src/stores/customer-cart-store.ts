@@ -1,15 +1,21 @@
 "use client";
 
 import { create } from 'zustand';
-import { CartItem, CartItemVariant } from '@/features/customer-order/types';
+import { CartItem, CartItemVariant, OrderMode } from '@/features/customer-order/types';
 import { Product } from '@/features/products/types';
+import { Table } from '@/features/tables/types';
 
 interface CustomerCartState {
     items: CartItem[];
+    orderMode: OrderMode | null;
+    selectedTable: Table | null;
+    setOrderMode: (mode: OrderMode | null) => void;
+    setSelectedTable: (table: Table | null) => void;
     addItem: (product: Product, quantity: number, selectedVariants: CartItemVariant[], notes?: string) => void;
     removeItem: (cartItemId: string) => void;
     updateQuantity: (cartItemId: string, quantity: number) => void;
     clearCart: () => void;
+    resetAll: () => void;
     getItemCount: () => number;
     getSubtotal: () => number;
     getTax: (rate: number) => number;
@@ -28,6 +34,11 @@ function calculateUnitPrice(basePrice: number, variants: CartItemVariant[]): num
 
 export const useCustomerCartStore = create<CustomerCartState>((set, get) => ({
     items: [],
+    orderMode: null,
+    selectedTable: null,
+
+    setOrderMode: (mode) => set({ orderMode: mode }),
+    setSelectedTable: (table) => set({ selectedTable: table }),
 
     addItem: (product, quantity, selectedVariants, notes) => {
         const unitPrice = calculateUnitPrice(product.price, selectedVariants);
@@ -67,6 +78,8 @@ export const useCustomerCartStore = create<CustomerCartState>((set, get) => ({
     },
 
     clearCart: () => set({ items: [] }),
+
+    resetAll: () => set({ items: [], orderMode: null, selectedTable: null }),
 
     getItemCount: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);

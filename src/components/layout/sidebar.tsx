@@ -84,12 +84,7 @@ const navItems: NavItem[] = [
     icon: <Package className="h-5 w-5" />,
     roles: ["owner"],
   },
-  {
-    label: "Varian",
-    href: "/products/variants",
-    icon: <Layers className="h-5 w-5" />,
-    roles: ["owner"],
-  },
+  // { label: "Varian", href: "/products/variants", icon: <Layers className="h-5 w-5" />, roles: ["owner"] }, // TODO: mock — aktifkan setelah API siap
   {
     label: "Kategori",
     href: "/categories",
@@ -101,12 +96,7 @@ const navItems: NavItem[] = [
     href: "/transactions",
     icon: <ShoppingCart className="h-5 w-5" />,
   },
-  {
-    label: "Pembayaran",
-    href: "/payments",
-    icon: <Wallet className="h-5 w-5" />,
-    roles: ["owner"],
-  },
+  // { label: "Pembayaran", href: "/payments", icon: <Wallet className="h-5 w-5" />, roles: ["owner"] }, // TODO: mock — aktifkan setelah API siap
 ];
 
 // Pelanggan menu items — admin & manager only
@@ -150,38 +140,13 @@ const mejaNavItems: NavItem[] = [
   },
 ];
 
-// Inventory menu items — admin & manager only
+// TODO: Inventory — semua mock, aktifkan setelah API siap
 const inventoryNavItems: NavItem[] = [
-  {
-    label: "Arus Stok",
-    href: "/inventory/stock-flow",
-    icon: <TrendingUp className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Bahan Dasar",
-    href: "/inventory/raw-materials",
-    icon: <FlaskConical className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Konversi Unit",
-    href: "/inventory/unit-conversion",
-    icon: <Ruler className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Kategori",
-    href: "/inventory/categories",
-    icon: <FolderOpen className="h-5 w-5" />,
-    roles: ["owner"],
-  },
-  {
-    label: "Resep",
-    href: "/inventory/recipes",
-    icon: <BookOpen className="h-5 w-5" />,
-    roles: ["owner"],
-  },
+  // { label: "Arus Stok", href: "/inventory/stock-flow", icon: <TrendingUp className="h-5 w-5" />, roles: ["owner"] },
+  // { label: "Bahan Dasar", href: "/inventory/raw-materials", icon: <FlaskConical className="h-5 w-5" />, roles: ["owner"] },
+  // { label: "Konversi Unit", href: "/inventory/unit-conversion", icon: <Ruler className="h-5 w-5" />, roles: ["owner"] },
+  // { label: "Kategori", href: "/inventory/categories", icon: <FolderOpen className="h-5 w-5" />, roles: ["owner"] },
+  // { label: "Resep", href: "/inventory/recipes", icon: <BookOpen className="h-5 w-5" />, roles: ["owner"] },
 ];
 
 const bottomNavItems: NavItem[] = [

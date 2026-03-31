@@ -249,7 +249,7 @@ export default function CheckoutPage() {
                             )}
                         </div>
 
-                        {/* Section 3 — Payment Method */}
+                        {/* Section 3 — Payment Method (CASH only — TRANSFER & QRIS aktifkan setelah PG siap) */}
                         <div
                             className="rounded-[22px] p-6"
                             style={{
@@ -266,26 +266,18 @@ export default function CheckoutPage() {
                                     Metode Pembayaran
                                 </h2>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                {([
-                                    { value: "CASH", label: "Tunai" },
-                                    { value: "TRANSFER", label: "Transfer" },
-                                    { value: "QRIS", label: "QRIS" },
-                                ] as { value: PaymentMethod; label: string }[]).map((m) => (
-                                    <button
-                                        key={m.value}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
-                                        className="py-3 rounded-2xl border-2 text-[13px] font-black transition-all"
-                                        style={
-                                            formData.paymentMethod === m.value
-                                                ? { backgroundColor: '#FEF3C7', borderColor: '#F59E0B', color: '#92400E' }
-                                                : { backgroundColor: '#FEFAF5', borderColor: 'rgba(124,74,30,0.14)', color: '#6B4C2A' }
-                                        }
-                                    >
-                                        {m.label}
-                                    </button>
-                                ))}
+                            <div className="flex items-center gap-3 py-3 px-4 rounded-2xl border-2"
+                                style={{ backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }}
+                            >
+                                <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                                    style={{ backgroundColor: '#F59E0B' }}
+                                >
+                                    <ReceiptText className="h-4 w-4" style={{ color: '#1C0A00' }} />
+                                </div>
+                                <div>
+                                    <p className="text-[13px] font-black" style={{ color: '#92400E' }}>Tunai (Cash)</p>
+                                    <p className="text-[11px] font-medium" style={{ color: '#9C7D58' }}>Bayar di kasir</p>
+                                </div>
                             </div>
                         </div>
 

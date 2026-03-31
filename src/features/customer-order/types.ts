@@ -20,6 +20,15 @@ export interface CartItem {
   subtotal: number; // unitPrice * quantity
 }
 
+// Order Mode — chosen before browsing menu
+export type OrderMode = 'dine_in' | 'pre_order' | 'reservation';
+
+export const ORDER_MODE_LABELS: Record<OrderMode, string> = {
+  dine_in: 'Dine-In',
+  pre_order: 'Pre-Order',
+  reservation: 'Reservasi',
+};
+
 // Order Form Types
 export type CustomerFulfillmentType = 'dine_in' | 'takeaway';
 

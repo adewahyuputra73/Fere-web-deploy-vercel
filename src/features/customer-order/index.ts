@@ -5,3 +5,6 @@ export * from './components/CategoryFilter';
 export * from './components/ProductCard';
 export * from './components/VariantSelector';
 export * from './components/CartItemCard';
+export * from './components/OrderModeSelector';
+export * from './components/TableLayoutPicker';
+export * from './components/ReservationForm';

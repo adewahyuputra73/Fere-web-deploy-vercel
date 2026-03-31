@@ -99,6 +99,71 @@ export default function CartPage() {
                         </Link>
                     </div>
 
+                    {/* Mobile Summary */}
+                    <div className="lg:hidden">
+                        <div
+                            className="rounded-2xl p-4"
+                            style={{ backgroundColor: '#1C0A00', border: '1px solid rgba(245,158,11,0.15)' }}
+                        >
+                            <div
+                                className="flex items-center gap-2.5 mb-4 pb-3"
+                                style={{ borderBottom: '1px solid rgba(245,158,11,0.12)' }}
+                            >
+                                <div
+                                    className="h-8 w-8 rounded-lg flex items-center justify-center"
+                                    style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}
+                                >
+                                    <ReceiptText className="h-3.5 w-3.5" style={{ color: '#F59E0B' }} />
+                                </div>
+                                <h2
+                                    className="text-sm font-black tracking-tight font-[family-name:var(--font-fraunces)]"
+                                    style={{ color: 'rgba(255,255,255,0.9)' }}
+                                >
+                                    Ringkasan Pesanan
+                                </h2>
+                            </div>
+
+                            <div className="space-y-2 mb-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>Subtotal</span>
+                                    <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(subtotal)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                        {mockTaxSettings.tax_name} ({mockTaxSettings.tax_rate}%)
+                                    </span>
+                                    <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(tax)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                        Biaya Layanan ({mockTaxSettings.service_charge_rate}%)
+                                    </span>
+                                    <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(serviceFee)}</span>
+                                </div>
+
+                                <div
+                                    className="pt-3 mt-1"
+                                    style={{ borderTop: '1px dashed rgba(245,158,11,0.2)' }}
+                                >
+                                    <div className="flex justify-between items-end">
+                                        <span className="font-black text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>Total Akhir</span>
+                                        <span className="text-xl font-black tracking-tight tabular-nums" style={{ color: '#F59E0B' }}>
+                                            {formatCurrency(total)}
+                                        </span>
+                                    </div>
+                                    {mockTaxSettings.is_tax_inclusive && (
+                                        <p
+                                            className="text-[10px] font-bold text-right uppercase tracking-widest mt-1"
+                                            style={{ color: 'rgba(255,255,255,0.2)' }}
+                                        >
+                                            *Sudah termasuk pajak
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Right: Summary (desktop) */}
                     <div className="hidden lg:block lg:col-span-5">
                         <div
@@ -218,7 +283,7 @@ export default function CartPage() {
                     {/* Checkout link */}
                     <Link
                         href="/order/checkout"
-                        className="flex-1 h-12 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        className="flex-1 h-12 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-center"
                         style={{ backgroundColor: '#F59E0B', color: '#1C0A00' }}
                     >
                         Lanjut ke Checkout

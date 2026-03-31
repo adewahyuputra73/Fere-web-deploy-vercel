@@ -402,15 +402,11 @@ export default function TransactionsPage() {
             {selectedIds.length} pesanan dipilih
           </span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleChangeDate}
-              className="gap-1.5"
-            >
+            {/* TODO: aktifkan setelah API ubah tanggal siap */}
+            {/* <Button variant="outline" size="sm" onClick={handleChangeDate} className="gap-1.5">
               <CalendarDays className="h-3.5 w-3.5" />
               Ubah Tanggal
-            </Button>
+            </Button> */}
             <Button
               variant="destructive"
               size="sm"
