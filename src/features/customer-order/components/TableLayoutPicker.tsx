@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { ArrowLeft, Users, Check, Loader2, Layers } from "lucide-react";
-import { tableService } from "@/features/tables/services/table-service";
+import { pubTableService } from "@/features/customer-order/services/pub-services";
 import type { Table, Area } from "@/features/tables/types";
 
 interface TableLayoutPickerProps {
@@ -73,8 +73,8 @@ export function TableLayoutPicker({ onSelect, onBack, title = "Pilih Meja" }: Ta
         async function load() {
             try {
                 const [areasData, tablesData] = await Promise.all([
-                    tableService.areas().catch(() => [] as Area[]),
-                    tableService.list().catch(() => [] as Table[]),
+                    pubTableService.areas(),
+                    pubTableService.list(),
                 ]);
                 const areaList = Array.isArray(areasData) ? areasData : [];
                 const tableList = Array.isArray(tablesData) ? tablesData : [];

@@ -21,6 +21,8 @@ export interface CheckoutRequest {
   payments?: CheckoutPayment[];
   customer_name?: string;
   customer_phone?: string;
+  scheduled_at?: string;
+  notes?: string;
 }
 
 export type FulfillmentStatus = "PROCESSING" | "READY" | "DELIVERED" | "COMPLETED" | "CANCELLED";

@@ -18,6 +18,13 @@ export interface StoreInfo {
   createdAt: string;
   updatedAt: string;
   owner?: StoreOwner;
+  // Tax & service charge (may be present in BE response)
+  is_tax_enabled?: boolean;
+  tax_name?: string;
+  tax_rate?: number;
+  is_tax_inclusive?: boolean;
+  is_service_charge_enabled?: boolean;
+  service_charge_rate?: number;
 }
 
 export interface UpdateStoreRequest {

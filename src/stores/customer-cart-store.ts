@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { CartItem, CartItemVariant, OrderMode } from '@/features/customer-order/types';
 import { Product } from '@/features/products/types';
 import { Table } from '@/features/tables/types';
@@ -9,8 +10,10 @@ interface CustomerCartState {
     items: CartItem[];
     orderMode: OrderMode | null;
     selectedTable: Table | null;
+    qrToken: string | null;
     setOrderMode: (mode: OrderMode | null) => void;
     setSelectedTable: (table: Table | null) => void;
+    setQrToken: (token: string | null) => void;
     addItem: (product: Product, quantity: number, selectedVariants: CartItemVariant[], notes?: string) => void;
     removeItem: (cartItemId: string) => void;
     updateQuantity: (cartItemId: string, quantity: number) => void;
@@ -32,13 +35,17 @@ function calculateUnitPrice(basePrice: number, variants: CartItemVariant[]): num
     return basePrice + variantTotal;
 }
 
-export const useCustomerCartStore = create<CustomerCartState>((set, get) => ({
+export const useCustomerCartStore = create<CustomerCartState>()(
+  persist(
+    (set, get) => ({
     items: [],
     orderMode: null,
     selectedTable: null,
+    qrToken: null,
 
     setOrderMode: (mode) => set({ orderMode: mode }),
     setSelectedTable: (table) => set({ selectedTable: table }),
+    setQrToken: (token) => set({ qrToken: token }),
 
     addItem: (product, quantity, selectedVariants, notes) => {
         const unitPrice = calculateUnitPrice(product.price, selectedVariants);
@@ -79,7 +86,7 @@ export const useCustomerCartStore = create<CustomerCartState>((set, get) => ({
 
     clearCart: () => set({ items: [] }),
 
-    resetAll: () => set({ items: [], orderMode: null, selectedTable: null }),
+    resetAll: () => set({ items: [], orderMode: null, selectedTable: null, qrToken: null }),
 
     getItemCount: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);
@@ -103,4 +110,16 @@ export const useCustomerCartStore = create<CustomerCartState>((set, get) => ({
         const serviceFee = Math.round(subtotal * (serviceFeeRate / 100));
         return subtotal + tax + serviceFee;
     },
-}));
+    }),
+    {
+      name: "customer-cart-storage",
+      // Don't persist computed functions, only data
+      partialize: (state) => ({
+        items: state.items,
+        orderMode: state.orderMode,
+        selectedTable: state.selectedTable,
+        qrToken: state.qrToken,
+      }),
+    }
+  )
+);

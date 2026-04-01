@@ -7,7 +7,7 @@ import pubClient from "@/lib/api/pub-client";
 import { mapApiProduct } from "@/features/products/services/product-service";
 import type { Product } from "@/features/products/types";
 import type { StoreInfo } from "@/features/store-settings/types";
-import type { Table } from "@/features/tables/types";
+import type { Table, Area } from "@/features/tables/types";
 import type { CheckoutRequest } from "@/features/orders/types";
 
 export const pubProductService = {
@@ -31,6 +31,16 @@ export const pubStoreService = {
 };
 
 export const pubTableService = {
+  async areas(): Promise<Area[]> {
+    try {
+      const response = await pubClient.get<any>("/tables/areas");
+      const payload = response.data.data;
+      return Array.isArray(payload) ? payload : [];
+    } catch {
+      return [];
+    }
+  },
+
   async list(): Promise<Table[]> {
     try {
       const response = await pubClient.get<any>("/tables");
@@ -40,11 +50,29 @@ export const pubTableService = {
       return [];
     }
   },
+
+  async scan(qrToken: string): Promise<Table | null> {
+    try {
+      const response = await pubClient.get<any>(`/tables/scan/${qrToken}`);
+      return response.data.data ?? null;
+    } catch {
+      return null;
+    }
+  },
 };
 
 export const pubOrderService = {
-  async checkout(data: CheckoutRequest): Promise<any> {
-    const response = await pubClient.post<any>("/orders/checkout", data);
+  async checkout(storeId: string, data: {
+    name: string;
+    phone: string;
+    order_type: string;
+    table_number?: string;
+    items: { product_id: string; qty: number; note?: string }[];
+    payments: { method: string; amount: number }[];
+    scheduled_at?: string;
+    notes?: string;
+  }): Promise<any> {
+    const response = await pubClient.post<any>(`/orders/customer/${storeId}`, data);
     return response.data.data;
   },
 

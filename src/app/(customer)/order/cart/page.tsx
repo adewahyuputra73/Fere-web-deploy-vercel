@@ -1,19 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShoppingBag, ReceiptText, ArrowRight, Plus } from "lucide-react";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
 import { CartItemCard } from "@/features/customer-order";
 import { formatCurrency } from "@/lib/utils/format";
-import { mockTaxSettings } from "@/features/store-settings/mock-data";
+import { pubStoreService } from "@/features/customer-order/services/pub-services";
+import type { StoreInfo } from "@/features/store-settings/types";
+
+const DEFAULT_TAX = { tax_name: "Pajak", tax_rate: 0, service_charge_rate: 0, is_tax_inclusive: false };
 
 export default function CartPage() {
-    const { items, updateQuantity, removeItem, getSubtotal, getTax, getServiceFee, getTotal } = useCustomerCartStore();
+    const { items, updateQuantity, removeItem, getSubtotal, getTax, getServiceFee, getTotal, qrToken } = useCustomerCartStore();
+    const orderUrl = qrToken ? `/order?t=${qrToken}` : "/order";
+
+    const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
+    useEffect(() => { pubStoreService.my().then(setStoreInfo); }, []);
+
+    const taxRate = storeInfo?.is_tax_enabled ? (storeInfo.tax_rate ?? 0) : 0;
+    const serviceRate = storeInfo?.is_service_charge_enabled ? (storeInfo.service_charge_rate ?? 0) : 0;
+    const taxName = storeInfo?.tax_name ?? DEFAULT_TAX.tax_name;
+    const isTaxInclusive = storeInfo?.is_tax_inclusive ?? false;
 
     const subtotal = getSubtotal();
-    const tax = getTax(mockTaxSettings.tax_rate);
-    const serviceFee = getServiceFee(mockTaxSettings.service_charge_rate);
-    const total = getTotal(mockTaxSettings.tax_rate, mockTaxSettings.service_charge_rate);
+    const tax = getTax(taxRate);
+    const serviceFee = getServiceFee(serviceRate);
+    const total = getTotal(taxRate, serviceRate);
 
     if (items.length === 0) {
         return (
@@ -37,7 +50,7 @@ export default function CartPage() {
                     Sepertinya Anda belum menambahkan menu apa pun. Mari jelajahi menu lezat kami!
                 </p>
                 <Link
-                    href="/order"
+                    href={orderUrl}
                     className="inline-flex items-center gap-3 h-13 px-8 rounded-2xl font-black text-sm transition-all duration-200 active:scale-95"
                     style={{ backgroundColor: '#1C0A00', color: '#F59E0B', boxShadow: '0 8px 32px rgba(28,10,0,0.22)' }}
                 >
@@ -57,7 +70,7 @@ export default function CartPage() {
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <Link
-                        href="/order"
+                        href={orderUrl}
                         className="h-11 w-11 rounded-xl flex items-center justify-center transition-all active:scale-90 border"
                         style={{ backgroundColor: '#FFF8EE', borderColor: 'rgba(124,74,30,0.2)', color: '#6B4C2A' }}
                     >
@@ -90,7 +103,7 @@ export default function CartPage() {
 
                         {/* Add more items */}
                         <Link
-                            href="/order"
+                            href={orderUrl}
                             className="flex items-center justify-center gap-2 w-full h-13 rounded-2xl font-black text-sm transition-all duration-200 border-2 active:scale-[0.98]"
                             style={{ borderColor: 'rgba(245,158,11,0.3)', color: '#92400E', borderStyle: 'dashed' }}
                         >
@@ -128,18 +141,22 @@ export default function CartPage() {
                                     <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>Subtotal</span>
                                     <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(subtotal)}</span>
                                 </div>
+                                {taxRate > 0 && (
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                                        {mockTaxSettings.tax_name} ({mockTaxSettings.tax_rate}%)
+                                        {taxName} ({taxRate}%)
                                     </span>
                                     <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(tax)}</span>
                                 </div>
+                                )}
+                                {serviceRate > 0 && (
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                                        Biaya Layanan ({mockTaxSettings.service_charge_rate}%)
+                                        Biaya Layanan ({serviceRate}%)
                                     </span>
                                     <span className="text-xs font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(serviceFee)}</span>
                                 </div>
+                                )}
 
                                 <div
                                     className="pt-3 mt-1"
@@ -151,7 +168,7 @@ export default function CartPage() {
                                             {formatCurrency(total)}
                                         </span>
                                     </div>
-                                    {mockTaxSettings.is_tax_inclusive && (
+                                    {isTaxInclusive && (
                                         <p
                                             className="text-[10px] font-bold text-right uppercase tracking-widest mt-1"
                                             style={{ color: 'rgba(255,255,255,0.2)' }}
@@ -195,18 +212,22 @@ export default function CartPage() {
                                     <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>Subtotal</span>
                                     <span className="text-sm font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(subtotal)}</span>
                                 </div>
+                                {taxRate > 0 && (
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                                        {mockTaxSettings.tax_name} ({mockTaxSettings.tax_rate}%)
+                                        {taxName} ({taxRate}%)
                                     </span>
                                     <span className="text-sm font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(tax)}</span>
                                 </div>
+                                )}
+                                {serviceRate > 0 && (
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                                        Biaya Layanan ({mockTaxSettings.service_charge_rate}%)
+                                        Biaya Layanan ({serviceRate}%)
                                     </span>
                                     <span className="text-sm font-black tabular-nums" style={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(serviceFee)}</span>
                                 </div>
+                                )}
 
                                 {/* Total */}
                                 <div
@@ -219,7 +240,7 @@ export default function CartPage() {
                                             {formatCurrency(total)}
                                         </span>
                                     </div>
-                                    {mockTaxSettings.is_tax_inclusive && (
+                                    {isTaxInclusive && (
                                         <p
                                             className="text-[10px] font-bold text-right uppercase tracking-widest mt-1"
                                             style={{ color: 'rgba(255,255,255,0.2)' }}

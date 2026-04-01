@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, Loader2, RefreshCw } from "lucide-react";
+import { Search, ShoppingBag, Loader2, RefreshCw, MapPin } from "lucide-react";
 import { mockVariants } from "@/features/products/mock-data";
 import type { Product, Variant } from "@/features/products";
 import {
@@ -11,7 +11,7 @@ import {
     VariantSelector,
     CartItemVariant
 } from "@/features/customer-order";
-import { pubProductService, pubStoreService } from "@/features/customer-order/services/pub-services";
+import { pubProductService, pubStoreService, pubTableService } from "@/features/customer-order/services/pub-services";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
 import { Input } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
@@ -26,9 +26,15 @@ export default function OrderPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectingProduct, setSelectingProduct] = useState<Product | null>(null);
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
     const addItem = useCustomerCartStore((state) => state.addItem);
     const subtotal = useCustomerCartStore((state) => state.getSubtotal());
     const itemCount = useCustomerCartStore((state) => state.getItemCount());
+    const selectedTable = useCustomerCartStore((state) => state.selectedTable);
+    const setSelectedTable = useCustomerCartStore((state) => state.setSelectedTable);
+    const setQrToken = useCustomerCartStore((state) => state.setQrToken);
 
     // Fetch products from API
     const fetchProducts = useCallback(async () => {
@@ -50,6 +56,27 @@ export default function OrderPage() {
 
     useEffect(() => {
         pubStoreService.my().then(setStoreInfo).catch(() => {});
+    }, []);
+
+    // QR scan: /order?t=TOKEN → find table from list → store in cart
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const qrToken = params.get("t");
+        if (!qrToken) return;
+
+        setQrToken(qrToken); // simpan token agar back-button bisa reconstruct URL
+
+        // Jika table sudah ter-set dengan token yang sama, skip
+        if (selectedTable?.qr_token === qrToken || selectedTable?.id === qrToken) return;
+
+        // Cari table dari list berdasarkan qr_token atau id
+        pubTableService.list().then((tables) => {
+            const found = tables.find(
+                (t) => t.qr_token === qrToken || t.id === qrToken
+            );
+            if (found) setSelectedTable(found);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Derive categories from products
@@ -139,6 +166,36 @@ export default function OrderPage() {
                 </div>
             </section>
 
+            {/* Table badge — shown when QR scan detected */}
+            {selectedTable && (
+                <div className="container mx-auto px-4 pt-4 max-w-6xl">
+                    <div
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl border"
+                        style={{ backgroundColor: "#ECFDF5", borderColor: "#86EFAC" }}
+                    >
+                        <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#D1FAE5" }}>
+                            <MapPin className="h-4 w-4" style={{ color: "#059669" }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black" style={{ color: "#065F46" }}>
+                                {selectedTable.name}
+                                {selectedTable.area?.name ? ` · ${selectedTable.area.name}` : ""}
+                            </p>
+                            <p className="text-xs font-medium" style={{ color: "#059669" }}>
+                                Meja terdeteksi dari QR · Kapasitas {selectedTable.capacity} kursi
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setSelectedTable(null)}
+                            className="text-xs font-bold px-2.5 py-1 rounded-lg transition-all"
+                            style={{ color: "#059669", backgroundColor: "#D1FAE5" }}
+                        >
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Menu Section */}
             <section className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
                 <div className="sticky top-16 z-40 pt-2 mb-8" style={{ backgroundColor: 'rgba(254,250,245,0.97)', backdropFilter: 'blur(8px)' }}>
@@ -191,7 +248,7 @@ export default function OrderPage() {
             </section>
 
             {/* Floating Cart Button */}
-            {itemCount > 0 && (
+            {mounted && itemCount > 0 && (
                 <div className="fixed bottom-6 left-0 right-0 px-4 md:px-0 flex justify-center z-50 pointer-events-none">
                     <Link
                         href="/order/cart"

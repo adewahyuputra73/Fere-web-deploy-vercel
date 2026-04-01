@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingCart, Store } from "lucide-react";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
@@ -8,6 +9,8 @@ import { mockStoreInfo } from "@/features/store-settings/mock-data";
 
 export function CustomerNavbar() {
     const itemCount = useCustomerCartStore((state) => state.getItemCount());
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
 
     return (
         <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-divider shadow-sm">
@@ -28,7 +31,7 @@ export function CustomerNavbar() {
                     className="relative p-2.5 rounded-full hover:bg-[#FEF3C7] text-text-primary hover:text-[#D97706] transition-all duration-200"
                 >
                     <ShoppingCart className="h-6 w-6" />
-                    {itemCount > 0 && (
+                    {mounted && itemCount > 0 && (
                         <span className="absolute top-0 right-0 h-5 w-5 bg-error text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                             {itemCount}
                         </span>
