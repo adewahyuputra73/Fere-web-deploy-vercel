@@ -126,18 +126,25 @@ export function ProductModal({
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Nama produk wajib diisi";
     }
     if (formData.price <= 0) {
       newErrors.price = "Harga harus lebih dari 0";
     }
+    if (!formData.categoryId) {
+      newErrors.categoryId = "Kategori wajib dipilih";
+    }
     if (formData.useStock && formData.stockQuantity < 0) {
       newErrors.stockQuantity = "Stok tidak boleh negatif";
     }
 
     setErrors(newErrors);
+    // Switch to basic tab if there are errors on it
+    if (newErrors.name || newErrors.price || newErrors.categoryId) {
+      setActiveTab("basic");
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -254,12 +261,15 @@ export function ProductModal({
                 {/* Category */}
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1.5">
-                    Kategori
+                    Kategori <span className="text-error">*</span>
                   </label>
                   <select
                     value={formData.categoryId || ""}
                     onChange={(e) => updateField("categoryId", e.target.value || null)}
-                    className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className={cn(
+                      "w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                      errors.categoryId ? "border-error" : "border-border"
+                    )}
                   >
                     <option value="">Pilih Kategori</option>
                     {categories.map((cat) => (
@@ -268,6 +278,9 @@ export function ProductModal({
                       </option>
                     ))}
                   </select>
+                  {errors.categoryId && (
+                    <p className="text-xs text-error mt-1">{errors.categoryId}</p>
+                  )}
                 </div>
 
                 {/* Status */}

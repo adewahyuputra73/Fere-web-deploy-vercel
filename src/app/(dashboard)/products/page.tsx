@@ -142,10 +142,18 @@ export default function ProductsPage() {
       const apiErrors = apiErr.response?.data?.errors;
       const status = apiErr.response?.status;
       console.error("[save product] status:", status, "body:", apiErr.response?.data);
-      const detail = apiErrors
-        ? Object.values(apiErrors).flat().join(", ")
-        : apiMsg ?? "Periksa konsol untuk detail error";
-      showToast(`Gagal menyimpan: ${detail}`, "error");
+
+      const mapBeError = (msg: string) => {
+        if (/val\s*0*1/i.test(msg) || msg.toLowerCase().includes("category")) {
+          return "Kategori produk wajib dipilih";
+        }
+        return msg;
+      };
+
+      const rawDetail = apiErrors
+        ? Object.values(apiErrors).flat().map(mapBeError).join(", ")
+        : mapBeError(apiMsg ?? "Periksa konsol untuk detail error");
+      showToast(`Gagal menyimpan: ${rawDetail}`, "error");
     } finally {
       setIsLoading(false);
     }
