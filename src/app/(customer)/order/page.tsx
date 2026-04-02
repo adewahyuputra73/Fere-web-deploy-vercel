@@ -107,6 +107,17 @@ export default function OrderPage() {
             });
     }, [products, selectedCategoryId, searchQuery]);
 
+    const groupedProducts = useMemo(() => {
+        const groups = new Map<string, { categoryName: string; products: Product[] }>();
+        filteredProducts.forEach(product => {
+            const key = product.categoryId ? String(product.categoryId) : "__none__";
+            const name = product.categoryName ?? "Lainnya";
+            if (!groups.has(key)) groups.set(key, { categoryName: name, products: [] });
+            groups.get(key)!.products.push(product);
+        });
+        return Array.from(groups.values());
+    }, [filteredProducts]);
+
     const handleAddClick = (product: Product) => {
         if (product.variantIds && product.variantIds.length > 0) {
             setSelectingProduct(product);
@@ -233,14 +244,32 @@ export default function OrderPage() {
                             Coba Lagi
                         </button>
                     </div>
-                ) : filteredProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                        {filteredProducts.map((product) => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                                onAdd={() => handleAddClick(product)}
-                            />
+                ) : groupedProducts.length > 0 ? (
+                    <div className="space-y-10">
+                        {groupedProducts.map(({ categoryName, products: groupItems }) => (
+                            <div key={categoryName}>
+                                <div className="flex items-center gap-3 mb-5">
+                                    <h2
+                                        className="text-lg font-black tracking-tight"
+                                        style={{ color: '#1C0A00' }}
+                                    >
+                                        {categoryName}
+                                    </h2>
+                                    <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(28,10,0,0.1)' }} />
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                        {groupItems.length} menu
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                                    {groupItems.map((product) => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={product}
+                                            onAdd={() => handleAddClick(product)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         ))}
                     </div>
                 ) : (
