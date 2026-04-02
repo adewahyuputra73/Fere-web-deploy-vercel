@@ -148,4 +148,14 @@ export const productService = {
   async bulkStatus(data: BulkStatusRequest): Promise<void> {
     await apiClient.post(ENDPOINTS.PRODUCTS.BULK_STATUS, data);
   },
+
+  async uploadImage(productId: string | number, file: File): Promise<void> {
+    const form = new FormData();
+    form.append("image", file);
+    await apiClient.post(ENDPOINTS.PRODUCTS.UPLOAD_IMAGE(productId), form);
+  },
+
+  async deleteImage(productId: string | number, imageId: string | number): Promise<void> {
+    await apiClient.delete(ENDPOINTS.PRODUCTS.DELETE_IMAGE(productId, imageId));
+  },
 };

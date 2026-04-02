@@ -141,12 +141,21 @@ export default function ProductsPage() {
         ...(data.description ? { description: data.description } : {}),
       };
       console.log("[save product] payload:", JSON.stringify(payload, null, 2));
+      let savedId: string;
       if (productId) {
         await productService.update(productId, payload);
+        savedId = productId;
         showToast("Produk berhasil diperbarui", "success");
       } else {
-        await productService.create(payload);
+        const created = await productService.create(payload);
+        savedId = created.id;
         showToast("Produk berhasil ditambahkan", "success");
+      }
+      // Upload new images after save
+      if (data.images.length > 0) {
+        for (const file of data.images) {
+          await productService.uploadImage(savedId, file);
+        }
       }
       await fetchData();
       handleCloseModal();

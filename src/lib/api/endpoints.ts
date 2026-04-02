@@ -29,6 +29,8 @@ export const ENDPOINTS = {
     PRICES: (id: string | number) => `/products/${id}/prices`,
     BULK_DELETE: "/products/bulk/delete",
     BULK_STATUS: "/products/bulk/status",
+    UPLOAD_IMAGE: (id: string | number) => `/products/${id}/images`,
+    DELETE_IMAGE: (productId: string | number, imageId: string | number) => `/products/${productId}/images/${imageId}`,
   },
 
   // Categories

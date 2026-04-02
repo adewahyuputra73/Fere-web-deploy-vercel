@@ -143,7 +143,8 @@ export function ProductModal({
 
   const handleSubmit = () => {
     if (!validate()) return;
-    onSave(formData, product?.id);
+    const newImageFiles = images.filter(img => img.file).map(img => img.file!);
+    onSave({ ...formData, images: newImageFiles }, product?.id);
   };
 
   const updateField = <K extends keyof ProductFormData>(
@@ -291,7 +292,7 @@ export function ProductModal({
                   <ImageUploader
                     images={images}
                     onChange={setImages}
-                    maxImages={5}
+                    maxImages={1}
                   />
                 </div>
               </div>
