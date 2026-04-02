@@ -40,7 +40,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (): Promise<Product[]> => {
     setIsFetching(true);
     try {
       const [productData, categoryData] = await Promise.all([
@@ -53,8 +53,10 @@ export default function ProductsPage() {
         ? (categoryData as any[]).map((c) => ({ id: String(c.id), name: c.name }))
         : [];
       setApiCategories(cats);
+      return productData;
     } catch {
       showToast("Gagal memuat data produk", "error");
+      return [];
     } finally {
       setIsFetching(false);
     }
@@ -187,11 +189,18 @@ export default function ProductsPage() {
 
   const confirmDelete = async () => {
     if (!deleteConfirmProduct) return;
+    const targetId = deleteConfirmProduct.id;
+    const targetName = deleteConfirmProduct.name;
     try {
-      await productService.delete(deleteConfirmProduct.id);
-      // Re-fetch from API to confirm actual deletion (not just optimistic removal)
-      await fetchData();
-      showToast(`${deleteConfirmProduct.name} berhasil dihapus`, "success");
+      await productService.delete(targetId);
+      const updated = await fetchData();
+      const stillExists = updated.some(p => p.id === targetId);
+      if (stillExists) {
+        // BE soft-deleted (deactivated) — produk punya riwayat transaksi
+        showToast(`${targetName} tidak bisa dihapus permanen karena memiliki riwayat transaksi. Produk dinonaktifkan.`, "warning");
+      } else {
+        showToast(`${targetName} berhasil dihapus`, "success");
+      }
     } catch (err) {
       const apiErr = err as AxiosError<{ message?: string }>;
       const status = apiErr.response?.status;
