@@ -24,11 +24,14 @@ import {
 } from "@/features/categories";
 import type { Category, CategoryFormData, CategoryFilters, ProductForPicker } from "@/features/categories";
 import { productService } from "@/features/products";
+import { useAuthStore } from "@/stores";
 
 type StatusTab = 'all' | 'active' | 'inactive';
 
 export default function CategoriesPage() {
   const { showToast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.role === "owner";
 
   // State
   const [categories, setCategories] = useState<Category[]>([]);
@@ -152,10 +155,12 @@ export default function CategoriesPage() {
         title="Kategori"
         description="Kelola kategori produk untuk outlet Anda"
         actions={
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Kategori
-          </Button>
+          isOwner ? (
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Kategori
+            </Button>
+          ) : undefined
         }
       />
 
@@ -223,6 +228,7 @@ export default function CategoriesPage() {
           setDeleteConfirmOpen(true);
         }}
         onToggleStatus={handleToggleStatus}
+        readOnly={!isOwner}
       />
 
       {/* Modal */}

@@ -28,6 +28,7 @@ interface CategoryTableProps {
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   onToggleStatus: (categoryId: string, is_active: boolean) => void;
+  readOnly?: boolean;
 }
 
 type SortField = 'name' | 'updatedAt';
@@ -40,6 +41,7 @@ export function CategoryTable({
   onEdit,
   onDelete,
   onToggleStatus,
+  readOnly = false,
 }: CategoryTableProps) {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -128,7 +130,7 @@ export function CategoryTable({
               </div>
             </TableHead>
             <TableHead className="text-center">STATUS</TableHead>
-            <TableHead className="text-center">AKSI</TableHead>
+            {!readOnly && <TableHead className="text-center">AKSI</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -149,30 +151,33 @@ export function CategoryTable({
                 <div className="flex justify-center">
                   <StatusToggle
                     checked={category.is_active}
-                    onChange={(checked) => onToggleStatus(category.id, checked)}
+                    onChange={(checked) => !readOnly && onToggleStatus(category.id, checked)}
+                    disabled={readOnly}
                   />
                 </div>
               </TableCell>
-              <TableCell>
-                <div className="flex items-center justify-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(category)}
-                    className="h-8 w-8 text-text-secondary hover:text-primary"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(category)}
-                    className="h-8 w-8 text-text-secondary hover:text-error"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+              {!readOnly && (
+                <TableCell>
+                  <div className="flex items-center justify-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(category)}
+                      className="h-8 w-8 text-text-secondary hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(category)}
+                      className="h-8 w-8 text-text-secondary hover:text-error"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
