@@ -91,13 +91,20 @@ export default function OrderPage() {
     }, [products]);
 
     const filteredProducts = useMemo(() => {
-        return products.filter((product) => {
-            if (!product.isActive) return false;
-            const matchesCategory = selectedCategoryId === null || String(product.categoryId) === String(selectedCategoryId);
-            const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesCategory && matchesSearch;
-        });
+        return products
+            .filter((product) => {
+                if (!product.isActive) return false;
+                const matchesCategory = selectedCategoryId === null || String(product.categoryId) === String(selectedCategoryId);
+                const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesCategory && matchesSearch;
+            })
+            .sort((a, b) => {
+                const catA = a.categoryName ?? "";
+                const catB = b.categoryName ?? "";
+                if (catA !== catB) return catA.localeCompare(catB, "id");
+                return a.name.localeCompare(b.name, "id");
+            });
     }, [products, selectedCategoryId, searchQuery]);
 
     const handleAddClick = (product: Product) => {
