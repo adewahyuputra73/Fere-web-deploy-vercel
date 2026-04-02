@@ -114,27 +114,24 @@ export default function ProductsPage() {
   const handleSaveProduct = async (data: ProductFormData, productId?: string) => {
     setIsLoading(true);
     try {
-      // Build FormData — BE accepts multipart/form-data for products (including image)
-      const fd = new FormData();
-      fd.append("name", data.name);
-      fd.append("price", String(data.price));
-      fd.append("unit", "Pcs");
-      fd.append("is_active", String(data.isActive));
-      fd.append("stock_type", data.useStock ? "LIMITED" : "UNLIMITED");
-      if (data.categoryId) fd.append("category_id", data.categoryId);
-      if (data.useStock) {
-        fd.append("stock_qty", String(data.stockQuantity));
-        if (data.stockLimit) fd.append("stock_limit", String(data.stockLimit));
-      }
-      if (data.description) fd.append("description", data.description);
-      if (data.images.length > 0) fd.append("image", data.images[0]);
+      const payload = {
+        name: data.name,
+        price: data.price,
+        unit: "Pcs",
+        is_active: data.isActive,
+        stock_type: data.useStock ? "LIMITED" as const : "UNLIMITED" as const,
+        ...(data.categoryId ? { category_id: data.categoryId } : {}),
+        ...(data.useStock ? { stock_qty: data.stockQuantity } : {}),
+        ...(data.useStock && data.stockLimit ? { stock_limit: data.stockLimit } : {}),
+        ...(data.description ? { description: data.description } : {}),
+      };
+      const imageFile = data.images.length > 0 ? data.images[0] : undefined;
 
-      console.log("[save product] FormData, has image:", data.images.length > 0);
       if (productId) {
-        await productService.update(productId, fd as any);
+        await productService.update(productId, payload, imageFile);
         showToast("Produk berhasil diperbarui", "success");
       } else {
-        await productService.create(fd as any);
+        await productService.create(payload, imageFile);
         showToast("Produk berhasil ditambahkan", "success");
       }
       await fetchData();

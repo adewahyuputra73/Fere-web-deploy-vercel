@@ -84,10 +84,21 @@ export const productService = {
     return mapApiProduct(response.data.data);
   },
 
-  async create(data: CreateProductRequest): Promise<Product> {
+  async create(data: CreateProductRequest, imageFile?: File): Promise<Product> {
+    const fd = new FormData();
+    fd.append("name", data.name);
+    fd.append("price", String(data.price ?? 0));
+    if (data.unit) fd.append("unit", data.unit);
+    if (data.is_active !== undefined) fd.append("is_active", String(data.is_active));
+    fd.append("stock_type", data.stock_type);
+    if (data.category_id) fd.append("category_id", data.category_id);
+    if (data.stock_qty !== undefined) fd.append("stock_qty", String(data.stock_qty));
+    if (data.stock_limit !== undefined) fd.append("stock_limit", String(data.stock_limit));
+    if (data.description) fd.append("description", data.description);
+    if (imageFile) fd.append("image", imageFile);
     const response = await apiClient.post<ApiResponse<any>>(
       ENDPOINTS.PRODUCTS.CREATE,
-      data
+      fd
     );
     return mapApiProduct(response.data.data);
   },
@@ -99,10 +110,21 @@ export const productService = {
     return mapApiProduct(response.data.data);
   },
 
-  async update(id: string | number, data: UpdateProductRequest): Promise<Product> {
+  async update(id: string | number, data: UpdateProductRequest, imageFile?: File): Promise<Product> {
+    const fd = new FormData();
+    if (data.name !== undefined) fd.append("name", data.name);
+    if (data.price !== undefined) fd.append("price", String(data.price));
+    if (data.unit) fd.append("unit", data.unit);
+    if (data.is_active !== undefined) fd.append("is_active", String(data.is_active));
+    if (data.stock_type) fd.append("stock_type", data.stock_type);
+    if (data.category_id) fd.append("category_id", data.category_id);
+    if (data.stock_qty !== undefined) fd.append("stock_qty", String(data.stock_qty));
+    if (data.stock_limit !== undefined) fd.append("stock_limit", String(data.stock_limit));
+    if (data.description) fd.append("description", data.description);
+    if (imageFile) fd.append("image", imageFile);
     const response = await apiClient.put<ApiResponse<any>>(
       ENDPOINTS.PRODUCTS.UPDATE(id),
-      data
+      fd
     );
     return mapApiProduct(response.data.data);
   },
@@ -147,15 +169,5 @@ export const productService = {
 
   async bulkStatus(data: BulkStatusRequest): Promise<void> {
     await apiClient.post(ENDPOINTS.PRODUCTS.BULK_STATUS, data);
-  },
-
-  async uploadImage(productId: string | number, file: File): Promise<void> {
-    const form = new FormData();
-    form.append("image", file);
-    await apiClient.post(ENDPOINTS.PRODUCTS.UPLOAD_IMAGE(productId), form);
-  },
-
-  async deleteImage(productId: string | number, imageId: string | number): Promise<void> {
-    await apiClient.delete(ENDPOINTS.PRODUCTS.DELETE_IMAGE(productId, imageId));
   },
 };
