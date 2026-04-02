@@ -114,48 +114,28 @@ export default function ProductsPage() {
   const handleSaveProduct = async (data: ProductFormData, productId?: string) => {
     setIsLoading(true);
     try {
-      // Build prices array — API uses uppercase channel names
-      const prices = [
-        { channel: "POS", price: data.price },
-        ...(data.channelPrices.gofood > 0
-          ? [{ channel: "GOFOOD", price: data.channelPrices.gofood }]
-          : []),
-        ...(data.channelPrices.grabfood > 0
-          ? [{ channel: "GRABFOOD", price: data.channelPrices.grabfood }]
-          : []),
-        ...(data.channelPrices.shopeefood > 0
-          ? [{ channel: "SHOPEEFOOD", price: data.channelPrices.shopeefood }]
-          : []),
-      ];
+      // Build FormData — BE accepts multipart/form-data for products (including image)
+      const fd = new FormData();
+      fd.append("name", data.name);
+      fd.append("price", String(data.price));
+      fd.append("unit", "Pcs");
+      fd.append("is_active", String(data.isActive));
+      fd.append("stock_type", data.useStock ? "LIMITED" : "UNLIMITED");
+      if (data.categoryId) fd.append("category_id", data.categoryId);
+      if (data.useStock) {
+        fd.append("stock_qty", String(data.stockQuantity));
+        if (data.stockLimit) fd.append("stock_limit", String(data.stockLimit));
+      }
+      if (data.description) fd.append("description", data.description);
+      if (data.images.length > 0) fd.append("image", data.images[0]);
 
-      const payload = {
-        name: data.name,
-        price: data.price,
-        prices,
-        unit: "Pcs",
-        is_active: data.isActive,
-        ...(data.categoryId ? { category_id: data.categoryId } : {}),
-        stock_type: data.useStock ? "LIMITED" as const : "UNLIMITED" as const,
-        ...(data.useStock ? { stock_qty: data.stockQuantity } : {}),
-        ...(data.useStock && data.stockLimit ? { stock_limit: data.stockLimit } : {}),
-        ...(data.description ? { description: data.description } : {}),
-      };
-      console.log("[save product] payload:", JSON.stringify(payload, null, 2));
-      let savedId: string;
+      console.log("[save product] FormData, has image:", data.images.length > 0);
       if (productId) {
-        await productService.update(productId, payload);
-        savedId = productId;
+        await productService.update(productId, fd as any);
         showToast("Produk berhasil diperbarui", "success");
       } else {
-        const created = await productService.create(payload);
-        savedId = created.id;
+        await productService.create(fd as any);
         showToast("Produk berhasil ditambahkan", "success");
-      }
-      // Upload new images after save
-      if (data.images.length > 0) {
-        for (const file of data.images) {
-          await productService.uploadImage(savedId, file);
-        }
       }
       await fetchData();
       handleCloseModal();
