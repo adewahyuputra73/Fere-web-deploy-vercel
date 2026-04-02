@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { shiftService, ShiftStatusBadge } from "@/features/shifts";
 import type { ShiftStatus, ShiftHistoryItem, StartShiftRequest, EndShiftRequest } from "@/features/shifts";
-import { Clock, LogIn, LogOut, History, CheckCircle2, AlertCircle, Loader2, User } from "lucide-react";
+import { Clock, LogIn, LogOut, History, CheckCircle2, AlertCircle, Loader2, User, ShieldAlert } from "lucide-react";
+import { useAuthStore } from "@/stores";
 
 function formatDateTime(iso: string) {
   if (!iso) return "-";
@@ -16,6 +17,9 @@ function formatDateTime(iso: string) {
 }
 
 export default function ShiftPage() {
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.role === "owner";
+
   const [shift, setShift] = useState<ShiftStatus | null>(null);
   const [history, setHistory] = useState<ShiftHistoryItem[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -118,6 +122,13 @@ export default function ShiftPage() {
         </div>
       )}
 
+      {isOwner && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30 text-warning">
+          <ShieldAlert className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">Owner tidak dapat membuka atau menutup shift. Fitur ini hanya untuk kasir.</p>
+        </div>
+      )}
+
       {loadingStatus ? (
         <div className="flex items-center justify-center h-40">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -150,50 +161,52 @@ export default function ShiftPage() {
             </div>
           </div>
 
-          {/* Close shift form */}
-          <div className="bg-surface rounded-xl border border-border p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
-                <LogOut className="h-5 w-5 text-red-500" />
+          {/* Close shift form — kasir only */}
+          {!isOwner && (
+            <div className="bg-surface rounded-xl border border-border p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-red-500" />
+                </div>
+                <h2 className="text-base font-bold text-text-primary">Tutup Shift</h2>
               </div>
-              <h2 className="text-base font-bold text-text-primary">Tutup Shift</h2>
+              <form onSubmit={handleCloseShift} className="space-y-4">
+                {shift.expected_cash && (
+                  <div className="bg-background rounded-lg p-3 flex items-center justify-between">
+                    <p className="text-xs text-text-secondary">Estimasi Kas (sistem)</p>
+                    <p className="text-sm font-bold text-text-primary">{formatCurrency(Number(shift.expected_cash))}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1.5">
+                    Kas Disetor (Rp) <span className="text-red-500">*</span>
+                  </label>
+                  <input type="number" min="0" value={cashDeposited} onChange={(e) => setCashDeposited(e.target.value)}
+                    placeholder="0" required
+                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary transition-colors" />
+                  <p className="text-xs text-text-disabled mt-1">Masukkan jumlah uang tunai yang disetor ke kasir utama</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1.5">Catatan (opsional)</label>
+                  <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Catatan penutupan shift..."
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-colors resize-none" />
+                </div>
+                {closeError && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <p className="text-xs font-medium">{closeError}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={submittingClose}
+                  className="w-full h-10 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {submittingClose ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {submittingClose ? "Menutup..." : "Tutup Shift"}
+                </button>
+              </form>
             </div>
-            <form onSubmit={handleCloseShift} className="space-y-4">
-              {shift.expected_cash && (
-                <div className="bg-background rounded-lg p-3 flex items-center justify-between">
-                  <p className="text-xs text-text-secondary">Estimasi Kas (sistem)</p>
-                  <p className="text-sm font-bold text-text-primary">{formatCurrency(Number(shift.expected_cash))}</p>
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5">
-                  Kas Disetor (Rp) <span className="text-red-500">*</span>
-                </label>
-                <input type="number" min="0" value={cashDeposited} onChange={(e) => setCashDeposited(e.target.value)}
-                  placeholder="0" required
-                  className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary transition-colors" />
-                <p className="text-xs text-text-disabled mt-1">Masukkan jumlah uang tunai yang disetor ke kasir utama</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5">Catatan (opsional)</label>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Catatan penutupan shift..."
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-colors resize-none" />
-              </div>
-              {closeError && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <p className="text-xs font-medium">{closeError}</p>
-                </div>
-              )}
-              <button type="submit" disabled={submittingClose}
-                className="w-full h-10 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {submittingClose ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                {submittingClose ? "Menutup..." : "Tutup Shift"}
-              </button>
-            </form>
-          </div>
+          )}
         </div>
-      ) : (
+      ) : !isOwner ? (
         <div className="max-w-md">
           <div className="bg-surface rounded-xl border border-border p-6">
             <div className="flex items-center gap-2 mb-5">
@@ -229,7 +242,7 @@ export default function ShiftPage() {
             </form>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* History */}
       <div className="bg-surface rounded-xl border border-border">

@@ -22,6 +22,7 @@ interface ProductTableProps {
   onDelete: (product: Product) => void;
   onToggleStatus: (product: Product) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 type SortKey = "name" | "price" | "stockQuantity" | "categoryName";
@@ -33,6 +34,7 @@ export function ProductTable({
   onDelete,
   onToggleStatus,
   isLoading = false,
+  readOnly = false,
 }: ProductTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
@@ -244,8 +246,9 @@ export function ProductTable({
                     <div className="flex justify-center">
                       <StatusToggle
                         checked={product.isActive}
-                        onChange={() => onToggleStatus(product)}
+                        onChange={() => !readOnly && onToggleStatus(product)}
                         size="sm"
+                        disabled={readOnly}
                       />
                     </div>
                   </td>
@@ -267,24 +270,26 @@ export function ProductTable({
                   </td>
                   
                   {/* Actions */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => onEdit(product)}
-                        className="p-2 text-text-secondary hover:text-primary hover:bg-primary-light rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(product)}
-                        className="p-2 text-text-secondary hover:text-error hover:bg-error-light rounded-lg transition-colors"
-                        title="Hapus"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {!readOnly && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => onEdit(product)}
+                          className="p-2 text-text-secondary hover:text-primary hover:bg-primary-light rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(product)}
+                          className="p-2 text-text-secondary hover:text-error hover:bg-error-light rounded-lg transition-colors"
+                          title="Hapus"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}

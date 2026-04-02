@@ -14,11 +14,14 @@ import {
   X,
   Package,
 } from "lucide-react";
+import { useAuthStore } from "@/stores";
 
 type TabStatus = "all" | "active" | "inactive";
 
 export default function ProductsPage() {
   const { showToast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.role === "owner";
 
   // Data state
   const [products, setProducts] = useState<Product[]>([]);
@@ -227,10 +230,12 @@ export default function ProductsPage() {
         title="Produk"
         description="Kelola daftar produk untuk outlet Anda"
         actions={
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Produk
-          </Button>
+          isOwner ? (
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Produk
+            </Button>
+          ) : undefined
         }
       />
 
@@ -327,6 +332,7 @@ export default function ProductsPage() {
         onDelete={handleDeleteProduct}
         onToggleStatus={handleToggleStatus}
         isLoading={isFetching}
+        readOnly={!isOwner}
       />
 
       {/* Product Modal */}
