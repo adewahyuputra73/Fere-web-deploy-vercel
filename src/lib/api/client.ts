@@ -13,6 +13,11 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Let browser set Content-Type for FormData (needs multipart boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
     // Only access localStorage on client side
     if (typeof window !== "undefined") {
       // Priority 1: URL param ?t=TOKEN — untuk QR code customer order
