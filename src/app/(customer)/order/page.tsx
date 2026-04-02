@@ -94,10 +94,9 @@ export default function OrderPage() {
         return products
             .filter((product) => {
                 if (!product.isActive) return false;
-                const matchesCategory = selectedCategoryId === null || String(product.categoryId) === String(selectedCategoryId);
-                const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                if (!searchQuery) return true;
+                return product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchesCategory && matchesSearch;
             })
             .sort((a, b) => {
                 const catA = a.categoryName ?? "";
@@ -105,18 +104,32 @@ export default function OrderPage() {
                 if (catA !== catB) return catA.localeCompare(catB, "id");
                 return a.name.localeCompare(b.name, "id");
             });
-    }, [products, selectedCategoryId, searchQuery]);
+    }, [products, searchQuery]);
 
     const groupedProducts = useMemo(() => {
-        const groups = new Map<string, { categoryName: string; products: Product[] }>();
+        const groups = new Map<string, { categoryId: string; categoryName: string; products: Product[] }>();
         filteredProducts.forEach(product => {
             const key = product.categoryId ? String(product.categoryId) : "__none__";
             const name = product.categoryName ?? "Lainnya";
-            if (!groups.has(key)) groups.set(key, { categoryName: name, products: [] });
+            if (!groups.has(key)) groups.set(key, { categoryId: key, categoryName: name, products: [] });
             groups.get(key)!.products.push(product);
         });
         return Array.from(groups.values());
     }, [filteredProducts]);
+
+    const handleSelectCategory = (id: string | number | null) => {
+        setSelectedCategoryId(id);
+        if (id === null) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+            const el = document.getElementById(`category-${id}`);
+            if (el) {
+                const offset = 120; // account for sticky header height
+                const top = el.getBoundingClientRect().top + window.scrollY - offset;
+                window.scrollTo({ top, behavior: "smooth" });
+            }
+        }
+    };
 
     const handleAddClick = (product: Product) => {
         if (product.variantIds && product.variantIds.length > 0) {
@@ -220,7 +233,7 @@ export default function OrderPage() {
                     <CategoryFilter
                         categories={activeCategories}
                         selectedCategoryId={selectedCategoryId}
-                        onSelectCategory={setSelectedCategoryId}
+                        onSelectCategory={handleSelectCategory}
                     />
                 </div>
 
@@ -246,8 +259,8 @@ export default function OrderPage() {
                     </div>
                 ) : groupedProducts.length > 0 ? (
                     <div className="space-y-10">
-                        {groupedProducts.map(({ categoryName, products: groupItems }) => (
-                            <div key={categoryName}>
+                        {groupedProducts.map(({ categoryId, categoryName, products: groupItems }) => (
+                            <div key={categoryName} id={`category-${categoryId}`}>
                                 <div className="flex items-center gap-3 mb-5">
                                     <h2
                                         className="text-lg font-black tracking-tight"
