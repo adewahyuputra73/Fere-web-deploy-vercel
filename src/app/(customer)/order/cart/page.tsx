@@ -15,6 +15,9 @@ export default function CartPage() {
     const { items, updateQuantity, removeItem, getSubtotal, getTax, getServiceFee, getTotal, qrToken } = useCustomerCartStore();
     const orderUrl = qrToken ? `/order?t=${qrToken}` : "/order";
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
     const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
     useEffect(() => { pubStoreService.my().then(setStoreInfo); }, []);
 
@@ -27,6 +30,14 @@ export default function CartPage() {
     const tax = getTax(taxRate);
     const serviceFee = getServiceFee(serviceRate);
     const total = getTotal(taxRate, serviceRate);
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FEFAF5' }}>
+                <div className="h-8 w-8 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+            </div>
+        );
+    }
 
     if (items.length === 0) {
         return (

@@ -452,9 +452,15 @@ export function getOrderStats(orders: Order[]) {
   const totalRevenue = orders
     .filter((o) => o.status === 'completed')
     .reduce((sum, o) => sum + o.totalPrice, 0);
+  // Hitung item terjual dari items yang ada (jika BE mengembalikan items)
+  // Jika items kosong (dari list endpoint), fallback ke jumlah order selesai
   const totalItems = orders
     .filter((o) => o.status === 'completed')
-    .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+    .reduce((sum, o) => {
+      const itemCount = o.items.reduce((s, i) => s + i.quantity, 0);
+      return sum + (itemCount > 0 ? itemCount : 1); // minimal 1 per order jika items kosong
+    }, 0);
+  const unpaidOrders = orders.filter((o) => o.status === 'unpaid').length;
   const completedOrders = orders.filter((o) => o.status === 'completed').length;
   const pendingOrders = orders.filter((o) => o.status === 'unpaid' || o.status === 'ready' || o.status === 'shipped').length;
   const failedOrders = orders.filter((o) => o.status === 'failed').length;
@@ -466,5 +472,6 @@ export function getOrderStats(orders: Order[]) {
     completedOrders,
     pendingOrders,
     failedOrders,
+    unpaidOrders,
   };
 }

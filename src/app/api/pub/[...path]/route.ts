@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BE_BASE = "https://qa-api.ferecorps.com/api/fereapps/v1";
+// Edge Runtime — kompatibel dengan Cloudflare Pages
+export const runtime = "edge";
+
+const BE_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://qa-api.ferecorps.com/api/fereapps/v1";
 
 // ── Token cache (module-level, hidup selama server process berjalan) ──
 let cachedToken: string | null = null;

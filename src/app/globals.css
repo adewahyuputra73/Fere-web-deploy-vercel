@@ -189,3 +189,24 @@ body {
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.4), 0 8px 24px 0 rgba(0, 0, 0, 0.3);
 }
 
+/* ========================================
+   PRINT STYLES (Invoice)
+   ======================================== */
+
+@media print {
+  /* Hide navbar, footer, and elements marked print:hidden */
+  nav, footer, .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+}
+

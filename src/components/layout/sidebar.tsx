@@ -155,7 +155,7 @@ const bottomNavItems: NavItem[] = [
     roles: ["owner"],
   },
   {
-    label: "Settings",
+    label: "Pengaturan",
     href: "/settings",
     icon: <Settings className="h-5 w-5" />,
     roles: ["owner"],

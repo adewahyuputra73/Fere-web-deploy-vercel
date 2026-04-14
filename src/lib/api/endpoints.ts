@@ -155,6 +155,16 @@ export const ENDPOINTS = {
     TRANSACTIONS: "/wallet/transactions",
   },
 
+  // Biteship Delivery
+  BITESHIP: {
+    AREAS: "/biteship/areas",
+    RATES: "/biteship/rates/couriers",
+    ORDERS: "/biteship/orders",
+    ORDER_DETAIL: (id: string) => `/biteship/orders/${id}`,
+    TRACKING: (waybillId: string) => `/biteship/trackings/${waybillId}`,
+    COURIERS: "/biteship/couriers",
+  },
+
   // Dashboard
   DASHBOARD: {
     TODAY_SUMMARY: "/dashboard",

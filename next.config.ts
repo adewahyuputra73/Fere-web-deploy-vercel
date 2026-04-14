@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         hostname: 'qa-api.ferecorps.com',
       },
       {
+        protocol: 'https',
+        hostname: 'api.ferecops.com',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
       },

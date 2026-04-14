@@ -13,7 +13,13 @@ import { formatCurrency } from "@/lib/utils/format";
 import { useToast } from "@/components/ui";
 import { pubOrderService, pubStoreService } from "@/features/customer-order/services/pub-services";
 import { TableLayoutPicker } from "@/features/customer-order/components/TableLayoutPicker";
+import { DeliveryAddressSearch } from "@/features/delivery/components/DeliveryAddressSearch";
+import { DeliveryRateSelector } from "@/features/delivery/components/DeliveryRateSelector";
+import { LocationPicker } from "@/features/delivery/components/LocationPicker";
+import { biteshipService } from "@/features/delivery/services/biteship-service";
+import type { PickedLocation } from "@/features/delivery/components/LocationPicker";
 import type { StoreInfo } from "@/features/store-settings/types";
+import type { BiteshipArea, BiteshipCourier } from "@/features/delivery/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type FulfillmentType = "dine_in" | "pickup" | "delivery";
@@ -114,6 +120,10 @@ export default function CheckoutPage() {
     const setSelectedTable = useCustomerCartStore((state) => state.setSelectedTable);
     const qrToken = useCustomerCartStore((state) => state.qrToken);
 
+    // Hindari hydration mismatch: Zustand persist store berbeda antara server & client
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
     const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
     useEffect(() => { pubStoreService.my().then(setStoreInfo); }, []);
 
@@ -135,6 +145,12 @@ export default function CheckoutPage() {
     const [scheduledDate, setScheduledDate] = useState(todayStr());
     const [scheduledTime, setScheduledTime] = useState("");
 
+    // Delivery fields (only for "delivery" fulfillment)
+    const [destinationArea, setDestinationArea] = useState<BiteshipArea | null>(null);
+    const [selectedRate, setSelectedRate] = useState<BiteshipCourier | null>(null);
+    const [recipientAddress, setRecipientAddress] = useState("");
+    const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
+
     const subtotal = getSubtotal();
     const tax = getTax(taxRate);
     const serviceFee = getServiceFee(serviceRate);
@@ -147,6 +163,13 @@ export default function CheckoutPage() {
     // Reset pre-order state when switching to delivery
     useEffect(() => {
         if (fulfillmentType === "delivery") setIsPreOrder(false);
+        else {
+            // Reset delivery state saat pindah dari delivery
+            setDestinationArea(null);
+            setSelectedRate(null);
+            setRecipientAddress("");
+            setPickedLocation(null);
+        }
     }, [fulfillmentType]);
 
     // If switching to non-dine_in, clear the stored table
@@ -159,8 +182,9 @@ export default function CheckoutPage() {
         if (!customerName.trim() || !customerPhone.trim()) return false;
         if (fulfillmentType === "dine_in" && !selectedTable) return false;
         if (isPreOrder && (!scheduledDate || !scheduledTime)) return false;
+        if (fulfillmentType === "delivery" && (!destinationArea || !selectedRate || !recipientAddress.trim())) return false;
         return true;
-    }, [customerName, customerPhone, fulfillmentType, selectedTable, isPreOrder, scheduledDate, scheduledTime]);
+    }, [customerName, customerPhone, fulfillmentType, selectedTable, isPreOrder, scheduledDate, scheduledTime, destinationArea, selectedRate, recipientAddress]);
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -179,6 +203,12 @@ export default function CheckoutPage() {
 
             if (!storeInfo?.id) throw new Error("Store belum termuat, coba refresh halaman");
 
+            // Untuk delivery: sertakan info alamat di notes
+            const deliveryNotes = fulfillmentType === "delivery" && destinationArea && selectedRate
+                ? `[DELIVERY] ${selectedRate.courier_name} ${selectedRate.courier_service_name} | Tujuan: ${recipientAddress.trim()}, ${destinationArea.administrative_division_level_3_name || destinationArea.name}, ${destinationArea.administrative_division_level_2_name} | Ongkir: Rp${selectedRate.price.toLocaleString("id-ID")}`
+                : "";
+            const combinedNotes = [deliveryNotes, notes.trim()].filter(Boolean).join(" | ") || undefined;
+
             const order = await pubOrderService.checkout(storeInfo.id, {
                 order_type: orderType,
                 table_number: fulfillmentType === "dine_in" && selectedTable ? selectedTable.name : undefined,
@@ -191,20 +221,74 @@ export default function CheckoutPage() {
                 })),
                 payments: [{ method: "CASH", amount: total }],
                 scheduled_at,
-                notes: notes.trim() || undefined,
+                notes: combinedNotes,
             });
 
             // Clear cart & stored table after successful order
             clearCart();
             setSelectedTable(null);
 
+            const orderId = order?.id ?? "";
+
+            // Untuk delivery: buat Biteship order secara terpisah setelah checkout sukses
+            if (fulfillmentType === "delivery" && destinationArea && selectedRate && storeInfo && orderId) {
+                try {
+                    const biteshipOrder = await biteshipService.createOrder({
+                        origin_contact_name: storeInfo.name,
+                        origin_contact_phone: storeInfo.owner?.phone_number ?? "",
+                        origin_address: storeInfo.address ?? "",
+                        origin_area_id: storeInfo.area_id ?? "",
+                        destination_contact_name: customerName.trim(),
+                        destination_contact_phone: phone ?? "",
+                        destination_address: recipientAddress.trim(),
+                        destination_area_id: destinationArea.id,
+                        ...(pickedLocation ? {
+                            destination_coordinate: {
+                                latitude: pickedLocation.lat,
+                                longitude: pickedLocation.lng,
+                            }
+                        } : {}),
+                        courier_company: selectedRate.courier_code,
+                        courier_type: selectedRate.courier_service_code,
+                        items: items.map((item) => ({
+                            name: item.product.name,
+                            description: "",
+                            value: item.subtotal,
+                            weight: 200,
+                            quantity: item.quantity,
+                        })),
+                        delivery_notes: notes.trim() || undefined,
+                    });
+
+                    // Simpan Biteship order ID di localStorage untuk tracking
+                    if (biteshipOrder?.id) {
+                        localStorage.setItem(
+                            `biteship_order_${orderId}`,
+                            JSON.stringify({
+                                biteshipOrderId: biteshipOrder.id,
+                                waybillId: biteshipOrder.courier?.waybill_id ?? null,
+                                courierCompany: selectedRate.courier_name,
+                                destinationAddress: recipientAddress.trim(),
+                                destinationArea: destinationArea.administrative_division_level_2_name,
+                                destinationLat: pickedLocation?.lat ?? null,
+                                destinationLng: pickedLocation?.lng ?? null,
+                            })
+                        );
+                    }
+                } catch (biteshipErr) {
+                    // Jangan gagalkan order utama jika Biteship error
+                    console.warn("[checkout] Biteship order creation failed:", biteshipErr);
+                }
+            }
+
             const orderNumber = order?.order_number ?? order?.id ?? `ORD-${Date.now()}`;
-            const params = new URLSearchParams({
+            const confirmParams = new URLSearchParams({
                 orderNumber,
                 name: customerName,
-                orderId: order?.id ?? "",
+                orderId,
+                ...(fulfillmentType === "delivery" ? { hasDelivery: "1" } : {}),
             });
-            router.push(`/order/confirmation?${params.toString()}`);
+            router.push(`/order/confirmation?${confirmParams.toString()}`);
         } catch (err: any) {
             const status = err?.response?.status;
             const beMsg = err?.response?.data?.message ?? err?.response?.data?.error;
@@ -215,6 +299,15 @@ export default function CheckoutPage() {
             setIsSubmitting(false);
         }
     };
+
+    // ── Tunggu client mount (hindari Zustand persist hydration mismatch) ──────
+    if (!mounted) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FEFAF5" }}>
+                <div className="h-8 w-8 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+            </div>
+        );
+    }
 
     // ── Table picker overlay ───────────────────────────────────────────────────
     if (showTablePicker) {
@@ -255,7 +348,7 @@ export default function CheckoutPage() {
                             Konfirmasi Pesanan
                         </h1>
                         <p className="text-sm font-medium mt-0.5" style={{ color: "#9C7D58" }}>
-                            {items.length} menu · {formatCurrency(total)}
+                            {items.length} menu · {formatCurrency(total + (selectedRate?.price ?? 0))}
                         </p>
                     </div>
                 </div>
@@ -505,15 +598,121 @@ export default function CheckoutPage() {
                             </div>
                         </SectionCard>
 
+                        {/* ④b Pengiriman — hanya untuk delivery */}
+                        {fulfillmentType === "delivery" && (
+                            <SectionCard>
+                                <SectionTitle icon={Truck} label="Detail Pengiriman" />
+                                <div className="space-y-5">
+
+                                    {/* ① Peta — pilih titik lokasi */}
+                                    <LocationPicker
+                                        initialLat={pickedLocation?.lat}
+                                        initialLng={pickedLocation?.lng}
+                                        pickedLocation={pickedLocation}
+                                        onPick={(loc) => {
+                                            setPickedLocation(loc);
+                                            // Auto-isi alamat dari reverse geocode jika field masih kosong
+                                            if (loc.address && !recipientAddress.trim()) {
+                                                setRecipientAddress(loc.address);
+                                            }
+                                        }}
+                                        onClear={() => setPickedLocation(null)}
+                                    />
+
+                                    {/* ② Area tujuan (Biteship area) */}
+                                    <DeliveryAddressSearch
+                                        label="Kecamatan / Kelurahan Tujuan"
+                                        value={destinationArea}
+                                        onChange={(area) => {
+                                            setDestinationArea(area);
+                                            setSelectedRate(null);
+                                        }}
+                                    />
+
+                                    {/* ③ Alamat lengkap — bisa diisi manual atau dari peta */}
+                                    <div>
+                                        <FieldLabel>Alamat Lengkap / Patokan</FieldLabel>
+                                        <textarea
+                                            placeholder="Jl. Contoh No.1, Gedung A Lt.3, dekat minimarket..."
+                                            rows={2}
+                                            className="w-full rounded-2xl p-4 text-sm resize-none outline-none border-2 transition-colors font-medium"
+                                            style={inputStyle}
+                                            onFocus={onFocus}
+                                            onBlur={onBlur}
+                                            value={recipientAddress}
+                                            onChange={(e) => setRecipientAddress(e.target.value)}
+                                        />
+                                        {pickedLocation && !recipientAddress.trim() && (
+                                            <button
+                                                type="button"
+                                                onClick={() => pickedLocation.address && setRecipientAddress(pickedLocation.address)}
+                                                className="mt-1.5 text-[11px] font-black px-2 py-1 rounded-lg transition-all active:scale-95"
+                                                style={{ backgroundColor: "#FEF3C7", color: "#D97706" }}
+                                            >
+                                                Gunakan alamat dari peta
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* ④ Tarif kurir */}
+                                    <DeliveryRateSelector
+                                        originAreaId={storeInfo?.area_id ?? null}
+                                        destinationArea={destinationArea}
+                                        items={items.map((item) => ({
+                                            name: item.product.name,
+                                            value: item.subtotal,
+                                            weight: 200,
+                                            quantity: item.quantity,
+                                        }))}
+                                        selected={selectedRate}
+                                        onChange={setSelectedRate}
+                                    />
+
+                                    {/* Selected rate summary */}
+                                    {selectedRate && (
+                                        <div
+                                            className="flex items-center justify-between px-4 py-3 rounded-2xl"
+                                            style={{ backgroundColor: "#ECFDF5", border: "1.5px solid #A7F3D0" }}
+                                        >
+                                            <div>
+                                                <p className="text-sm font-black" style={{ color: "#065F46" }}>
+                                                    {selectedRate.courier_name} — {selectedRate.courier_service_name}
+                                                </p>
+                                                <p className="text-xs font-medium mt-0.5" style={{ color: "#6B7280" }}>
+                                                    {selectedRate.duration}
+                                                </p>
+                                            </div>
+                                            <span className="text-sm font-black tabular-nums" style={{ color: "#059669" }}>
+                                                +{formatCurrency(selectedRate.price)}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Validation hints */}
+                                    {!destinationArea && (
+                                        <p className="text-xs font-bold" style={{ color: "#D97706" }}>
+                                            * Pilih kecamatan/kelurahan tujuan untuk melihat kurir tersedia
+                                        </p>
+                                    )}
+                                    {destinationArea && !selectedRate && (
+                                        <p className="text-xs font-bold" style={{ color: "#D97706" }}>
+                                            * Pilih layanan pengiriman
+                                        </p>
+                                    )}
+                                    {destinationArea && selectedRate && !recipientAddress.trim() && (
+                                        <p className="text-xs font-bold" style={{ color: "#D97706" }}>
+                                            * Masukkan alamat lengkap tujuan
+                                        </p>
+                                    )}
+                                </div>
+                            </SectionCard>
+                        )}
+
                         {/* ⑤ Catatan (opsional) */}
                         <SectionCard>
                             <SectionTitle icon={ClipboardList} label="Catatan" />
                             <textarea
-                                placeholder={
-                                    fulfillmentType === "delivery"
-                                        ? "Alamat pengiriman atau pesan khusus..."
-                                        : "Pesan khusus untuk pesananmu..."
-                                }
+                                placeholder="Pesan khusus untuk pesananmu..."
                                 rows={3}
                                 className="w-full rounded-2xl p-4 text-sm resize-none outline-none border-2 transition-colors font-medium"
                                 style={inputStyle}
@@ -590,6 +789,7 @@ export default function CheckoutPage() {
                                     ["Subtotal", formatCurrency(subtotal)],
                                     ...(taxRate > 0 ? [[`${taxName} (${taxRate}%)`, formatCurrency(tax)]] : []),
                                     ...(serviceRate > 0 ? [[`Layanan (${serviceRate}%)`, formatCurrency(serviceFee)]] : []),
+                                    ...(selectedRate ? [[`Ongkos Kirim`, formatCurrency(selectedRate.price)]] : []),
                                 ].map(([label, value]) => (
                                     <div key={label} className="flex justify-between">
                                         <span className="text-sm font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
@@ -600,7 +800,7 @@ export default function CheckoutPage() {
                                     <div className="flex justify-between items-end">
                                         <span className="font-black text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>Total</span>
                                         <span className="text-2xl font-black tracking-tight tabular-nums" style={{ color: "#F59E0B" }}>
-                                            {formatCurrency(total)}
+                                            {formatCurrency(total + (selectedRate?.price ?? 0))}
                                         </span>
                                     </div>
                                 </div>
@@ -615,6 +815,11 @@ export default function CheckoutPage() {
                             {!canSubmit && isPreOrder && (!scheduledDate || !scheduledTime) && (
                                 <p className="text-xs font-bold text-center mb-3" style={{ color: "rgba(245,158,11,0.6)" }}>
                                     Pilih tanggal & waktu pre-order
+                                </p>
+                            )}
+                            {!canSubmit && fulfillmentType === "delivery" && (!destinationArea || !selectedRate || !recipientAddress.trim()) && (
+                                <p className="text-xs font-bold text-center mb-3" style={{ color: "rgba(245,158,11,0.6)" }}>
+                                    Lengkapi detail pengiriman
                                 </p>
                             )}
 
@@ -663,7 +868,7 @@ export default function CheckoutPage() {
                             Total
                         </span>
                         <span className="text-lg font-black tabular-nums leading-none" style={{ color: "#F59E0B" }}>
-                            {formatCurrency(total)}
+                            {formatCurrency(total + (selectedRate?.price ?? 0))}
                         </span>
                     </div>
                     <div className="h-8 w-px shrink-0" style={{ backgroundColor: "rgba(245,158,11,0.15)" }} />
@@ -689,6 +894,8 @@ export default function CheckoutPage() {
                     <p className="text-center text-[10px] font-bold mt-2" style={{ color: "rgba(245,158,11,0.5)" }}>
                         {fulfillmentType === "dine_in" && !selectedTable
                             ? "Pilih meja terlebih dahulu"
+                            : fulfillmentType === "delivery" && (!destinationArea || !selectedRate || !recipientAddress.trim())
+                            ? "Lengkapi detail pengiriman"
                             : "Pilih tanggal & waktu pre-order"}
                     </p>
                 )}

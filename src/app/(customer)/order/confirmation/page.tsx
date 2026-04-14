@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Ticket, Printer, Share2, Home, CreditCard, ChevronRight } from "lucide-react";
+import { CheckCircle2, Ticket, Printer, Share2, Home, CreditCard, ChevronRight, FileText, Truck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 
 function ConfirmationContent() {
@@ -11,6 +11,7 @@ function ConfirmationContent() {
     const orderNumber = searchParams.get("orderNumber") || "ORD-0000";
     const customerName = searchParams.get("name") || "Pelanggan";
     const orderId = searchParams.get("orderId") || "";
+    const hasDelivery = searchParams.get("hasDelivery") === "1";
 
     return (
         <div className="container mx-auto px-4 pt-16 pb-32 max-w-xl text-center">
@@ -43,13 +44,47 @@ function ConfirmationContent() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-divider pt-8">
-                    <button className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group">
+                    <button
+                        onClick={() => {
+                            if (orderId) {
+                                const invoiceUrl = `${window.location.origin}/invoice/${orderId}`;
+                                const printWindow = window.open(invoiceUrl, '_blank');
+                                if (printWindow) {
+                                    printWindow.addEventListener('load', () => {
+                                        setTimeout(() => printWindow.print(), 500);
+                                    });
+                                }
+                            }
+                        }}
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
+                    >
                         <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                             <Printer className="h-5 w-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Simpan PDF</span>
                     </button>
-                    <button className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group">
+                    <button
+                        onClick={async () => {
+                            const invoiceUrl = orderId
+                                ? `${window.location.origin}/invoice/${orderId}`
+                                : window.location.href;
+                            if (navigator.share) {
+                                try {
+                                    await navigator.share({
+                                        title: `Pesanan #${orderNumber}`,
+                                        text: `Lihat invoice pesanan #${orderNumber}`,
+                                        url: invoiceUrl,
+                                    });
+                                } catch {
+                                    // user cancelled share
+                                }
+                            } else {
+                                await navigator.clipboard.writeText(invoiceUrl);
+                                alert("Link invoice disalin ke clipboard!");
+                            }
+                        }}
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
+                    >
                         <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                             <Share2 className="h-5 w-5" />
                         </div>
@@ -59,6 +94,24 @@ function ConfirmationContent() {
             </div>
 
             <div className="space-y-4">
+                {orderId && (
+                    <Link
+                        href={`/invoice/${orderId}`}
+                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-2xl active:scale-[0.98] w-full h-16 text-lg bg-amber-500 text-white hover:bg-amber-600 shadow-xl shadow-amber-500/25"
+                    >
+                        <FileText className="mr-3 h-5 w-5" />
+                        Lihat Invoice
+                    </Link>
+                )}
+                {orderId && hasDelivery && (
+                    <Link
+                        href={`/order/tracking/${orderId}`}
+                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-2xl active:scale-[0.98] w-full h-16 text-lg bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/25"
+                    >
+                        <Truck className="mr-3 h-5 w-5" />
+                        Lacak Pesanan
+                    </Link>
+                )}
                 {orderId && (
                     <Link
                         href={`/order/review?order_id=${orderId}`}

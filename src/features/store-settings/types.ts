@@ -18,6 +18,8 @@ export interface StoreInfo {
   createdAt: string;
   updatedAt: string;
   owner?: StoreOwner;
+  // Biteship area ID untuk origin pengiriman
+  area_id?: string | null;
   // Tax & service charge (may be present in BE response)
   is_tax_enabled?: boolean;
   tax_name?: string;
