@@ -154,7 +154,7 @@ export function InvoiceView({ orderId }: InvoiceViewProps) {
 
   const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
   const invoiceLabel = order.invoiceNumber ?? order.orderNumber;
-  const isPaid = order.paymentStatus === "PAID";
+  const isPaid = order.status === "PAID" || order.paymentStatus === "PAID";
 
   return (
     <div className="min-h-screen pb-12 print:pb-0" style={{ backgroundColor: "#FEFAF5" }}>
@@ -465,11 +465,33 @@ export function InvoiceView({ orderId }: InvoiceViewProps) {
               </div>
             )}
 
+            {order.additionalFee > 0 && (
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "#9C7D58" }}>Biaya Tambahan</span>
+                <span className="font-bold" style={{ color: "#1C0A00" }}>
+                  {formatCurrency(order.additionalFee)}
+                </span>
+              </div>
+            )}
+
             {order.shippingFee > 0 && (
               <div className="flex justify-between text-sm">
                 <span style={{ color: "#9C7D58" }}>Ongkos Kirim</span>
                 <span className="font-bold" style={{ color: "#1C0A00" }}>
                   {formatCurrency(order.shippingFee)}
+                </span>
+              </div>
+            )}
+
+            {order.rounding !== 0 && (
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "#9C7D58" }}>Pembulatan</span>
+                <span
+                  className="font-bold"
+                  style={{ color: order.rounding < 0 ? "#DC2626" : "#1C0A00" }}
+                >
+                  {order.rounding < 0 ? "-" : ""}
+                  {formatCurrency(Math.abs(order.rounding))}
                 </span>
               </div>
             )}
@@ -495,12 +517,19 @@ export function InvoiceView({ orderId }: InvoiceViewProps) {
           >
             {/* Status badge */}
             {isPaid ? (
-              <div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black mb-3"
-                style={{ backgroundColor: "#ECFDF5", color: "#059669" }}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Pembayaran Lunas
+              <div className="mb-3">
+                <div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black"
+                  style={{ backgroundColor: "#ECFDF5", color: "#059669" }}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Pembayaran Lunas
+                </div>
+                {order.paidAt && (
+                  <p className="text-[11px] mt-1.5" style={{ color: "#9C7D58" }}>
+                    Dibayar pada {formatDateTime(order.paidAt)}
+                  </p>
+                )}
               </div>
             ) : (
               <div
