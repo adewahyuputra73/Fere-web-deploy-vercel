@@ -9,12 +9,15 @@ export interface BiteshipArea {
   country_name: string;
   country_code: string;
   administrative_division_level_1_name: string; // Province
+  administrative_division_level_1_type?: string;
   administrative_division_level_2_name: string; // City/Regency
+  administrative_division_level_2_type?: string;
   administrative_division_level_3_name: string; // District
-  administrative_division_level_4_name?: string; // Sub-district
-  postal_code: string;
-  latitude: number;
-  longitude: number;
+  administrative_division_level_3_type?: string;
+  administrative_division_level_4_name?: string;
+  administrative_division_level_4_type?: string;
+  postal_code: number | string | null;
+  // Catatan: Biteship areas API tidak mengembalikan koordinat
 }
 
 export interface BiteshipAreasResponse {
@@ -28,11 +31,27 @@ export interface BiteshipCourier {
   courier_name: string;
   courier_service_code: string;
   courier_service_name: string;
+  company: string;
   description: string;
   duration: string;
+  shipment_duration_range: string;
+  shipment_duration_unit: string;
+  service_type: string;
   shipping_type: string;
-  price: number;
   type: string;
+  price: number;
+  shipping_fee: number;
+  shipping_fee_discount: number;
+  shipping_fee_surcharge: number;
+  insurance_fee: number;
+  cash_on_delivery_fee: number;
+  currency: string;
+  available_for_insurance: boolean;
+  available_for_cash_on_delivery: boolean;
+  available_for_proof_of_delivery: boolean;
+  available_for_instant_waybill_id: boolean;
+  available_collection_method: string[];
+  tax_lines: unknown[];
 }
 
 export interface BiteshipRatesResponse {
@@ -53,15 +72,13 @@ export interface BiteshipRatesResponse {
 }
 
 export interface BiteshipRateRequest {
-  origin_area_id: string;
-  destination_area_id: string;
+  origin_latitude: number;
+  origin_longitude: number;
+  destination_latitude: number;
+  destination_longitude: number;
   items: {
     name: string;
-    description?: string;
     value: number;
-    length: number;
-    width: number;
-    height: number;
     weight: number;
     quantity: number;
   }[];
@@ -117,30 +134,41 @@ export interface BiteshipOrderDetail {
 // ── Tracking ────────────────────────────────────────────────────────────────────
 export interface BiteshipTrackingEvent {
   note: string;
+  service_type: string;
+  status: string;
   updated_at: string; // ISO date
 }
 
 export interface BiteshipTrackingResponse {
   success: boolean;
-  waybill_id: string;
+  object: string;
+  id: string;
+  waybill_id: string | null;
+  order_id: string;
+  status: BiteshipOrderStatus;
+  link: string | null;
   courier: {
     company: string;
-    driver: BiteshipDriver | null;
-    name: string;
+    name: string | null;
     phone: string | null;
-    type: string;
-    link: string | null;
-    status: BiteshipOrderStatus;
+    driver_name: string | null;
+    driver_phone: string | null;
+  };
+  origin: {
+    contact_name: string;
+    address: string;
   };
   destination: {
     contact_name: string;
-    contact_phone: string;
     address: string;
-    coordinate: { latitude: number; longitude: number } | null;
   };
   history: BiteshipTrackingEvent[];
-  price: number;
-  status: BiteshipOrderStatus;
+}
+
+// ── Cancel Reasons ──────────────────────────────────────────────────────────────
+export interface BiteshipCancelReason {
+  code: string;
+  reason: string;
 }
 
 // ── Courier List ────────────────────────────────────────────────────────────────

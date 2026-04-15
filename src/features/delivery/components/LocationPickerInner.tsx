@@ -39,7 +39,10 @@ export default function LocationPickerInner({ initialLat, initialLng, onPick }: 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    let cancelled = false;
+
     import("leaflet").then((L) => {
+      if (cancelled || !containerRef.current || mapRef.current) return;
       // Fix icon paths
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -159,7 +162,9 @@ export default function LocationPickerInner({ initialLat, initialLng, onPick }: 
       if (!initialLat && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+            if (!cancelled && mapRef.current) {
+              map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+            }
           },
           () => {} // tolak → tetap di default
         );
@@ -167,6 +172,7 @@ export default function LocationPickerInner({ initialLat, initialLng, onPick }: 
     });
 
     return () => {
+      cancelled = true;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

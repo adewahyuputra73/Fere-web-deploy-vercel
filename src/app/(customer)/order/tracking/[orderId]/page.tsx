@@ -92,37 +92,11 @@ export default function TrackingPage() {
         null;
 
       if (waybillId) {
-        const tracking = await biteshipService.trackWaybill(waybillId);
-        if (tracking) {
-          setTrackingData(tracking);
-        }
+        const tracking = await biteshipService.trackOrder(waybillId);
+        if (tracking) setTrackingData(tracking);
       } else if (biteshipOrderId) {
-        const detail = await biteshipService.getOrder(biteshipOrderId);
-        if (detail) {
-          // Reshape to match tracking response shape
-          setTrackingData({
-            success: true,
-            waybill_id: detail.courier?.waybill_id ?? "",
-            courier: {
-              company: detail.courier?.company ?? "",
-              driver: detail.courier?.driver ?? null,
-              name: detail.courier?.name ?? "",
-              phone: detail.courier?.phone ?? null,
-              type: detail.courier?.type ?? "",
-              link: detail.courier?.link ?? null,
-              status: detail.status,
-            },
-            destination: {
-              contact_name: detail.destination?.contact_name ?? "",
-              contact_phone: detail.destination?.contact_phone ?? "",
-              address: detail.destination?.address ?? "",
-              coordinate: detail.destination?.coordinate ?? null,
-            },
-            history: [],
-            price: detail.price,
-            status: detail.status,
-          } as BiteshipTrackingResponse);
-        }
+        const tracking = await biteshipService.trackOrder(biteshipOrderId);
+        if (tracking) setTrackingData(tracking);
       }
 
       setLastUpdated(new Date());
@@ -152,11 +126,14 @@ export default function TrackingPage() {
   const status: BiteshipOrderStatus | null = trackingData?.status ?? null;
   const statusInfo = status ? DELIVERY_STATUS_MAP[status] : null;
 
-  const driver = trackingData?.courier?.driver ?? null;
+  // Driver info dari courier object (driver_name/driver_phone langsung, bukan nested)
+  const driverName = trackingData?.courier?.driver_name ?? null;
+  const driverPhone = trackingData?.courier?.driver_phone ?? null;
+  const hasDriver = !!(driverName || driverPhone);
   const destination = trackingData?.destination ?? null;
   const history = trackingData?.history ?? [];
 
-  const destCoord = destination?.coordinate ?? null;
+  // Tracking response tidak punya koordinat destination — pakai dari localStorage
   const eta: string | null = orderData?.delivery?.estimated_time_of_delivery ?? null;
 
   // Baca info lokal dari localStorage (disimpan saat checkout)
@@ -179,8 +156,9 @@ export default function TrackingPage() {
   const displayAddress = destination?.address || localDeliveryInfo?.destinationAddress || null;
 
   // Koordinat tujuan — dari Biteship atau dari localStorage (disimpan saat checkout)
-  const resolvedDestLat = destCoord?.latitude ?? localDeliveryInfo?.destinationLat ?? undefined;
-  const resolvedDestLng = destCoord?.longitude ?? localDeliveryInfo?.destinationLng ?? undefined;
+  // Koordinat tujuan hanya tersedia dari localStorage (disimpan saat checkout)
+  const resolvedDestLat = localDeliveryInfo?.destinationLat ?? undefined;
+  const resolvedDestLng = localDeliveryInfo?.destinationLng ?? undefined;
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -350,11 +328,14 @@ export default function TrackingPage() {
           )}
         </div>
 
-        {/* Driver Info */}
-        {driver && (
+        {/* Driver / Courier Info */}
+        {hasDriver && (
           <div className="mb-5">
             <DriverInfoCard
-              driver={driver}
+              driver={{
+                name: driverName ?? trackingData?.courier?.name ?? "",
+                phone: driverPhone ?? trackingData?.courier?.phone ?? null,
+              }}
               courierCompany={trackingData?.courier?.company}
             />
           </div>

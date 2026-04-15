@@ -125,7 +125,37 @@ export default function CheckoutPage() {
     useEffect(() => { setMounted(true); }, []);
 
     const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
-    useEffect(() => { pubStoreService.my().then(setStoreInfo); }, []);
+    const [originAreaId, setOriginAreaId] = useState<string | null>(null);
+    const [originLat, setOriginLat] = useState<number | null>(null);
+    const [originLng, setOriginLng] = useState<number | null>(null);
+    useEffect(() => {
+        pubStoreService.my().then((info) => {
+            setStoreInfo(info);
+            // Koordinat langsung dari store (jika sudah diatur di dashboard)
+            if (info?.latitude && info?.longitude) {
+                setOriginLat(info.latitude);
+                setOriginLng(info.longitude);
+            }
+            if (info?.area_id) setOriginAreaId(info.area_id);
+
+            // Fallback: geocode alamat toko via Nominatim jika koordinat belum ada
+            // Catatan: Biteship areas tidak mengembalikan koordinat, jadi pakai Nominatim
+            if ((!info?.latitude || !info?.longitude) && info?.address) {
+                fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(info.address)}&format=json&limit=1`,
+                    { headers: { "Accept-Language": "id" } }
+                )
+                    .then((r) => r.json())
+                    .then((results: any[]) => {
+                        if (results.length > 0) {
+                            setOriginLat(parseFloat(results[0].lat));
+                            setOriginLng(parseFloat(results[0].lon));
+                        }
+                    })
+                    .catch(() => {});
+            }
+        });
+    }, []);
 
     const taxRate = storeInfo?.is_tax_enabled ? (storeInfo.tax_rate ?? 0) : 0;
     const serviceRate = storeInfo?.is_service_charge_enabled ? (storeInfo.service_charge_rate ?? 0) : 0;
@@ -237,11 +267,12 @@ export default function CheckoutPage() {
                         origin_contact_name: storeInfo.name,
                         origin_contact_phone: storeInfo.owner?.phone_number ?? "",
                         origin_address: storeInfo.address ?? "",
-                        origin_area_id: storeInfo.area_id ?? "",
+                        ...(originLat && originLng ? {
+                            origin_coordinate: { latitude: originLat, longitude: originLng },
+                        } : {}),
                         destination_contact_name: customerName.trim(),
                         destination_contact_phone: phone ?? "",
                         destination_address: recipientAddress.trim(),
-                        destination_area_id: destinationArea.id,
                         ...(pickedLocation ? {
                             destination_coordinate: {
                                 latitude: pickedLocation.lat,
@@ -250,14 +281,15 @@ export default function CheckoutPage() {
                         } : {}),
                         courier_company: selectedRate.courier_code,
                         courier_type: selectedRate.courier_service_code,
+                        delivery_type: "now",
+                        order_note: notes.trim() || undefined,
                         items: items.map((item) => ({
                             name: item.product.name,
-                            description: "",
                             value: item.subtotal,
                             weight: 200,
                             quantity: item.quantity,
                         })),
-                        delivery_notes: notes.trim() || undefined,
+                        metadata: {},
                     });
 
                     // Simpan Biteship order ID di localStorage untuk tracking
@@ -282,10 +314,15 @@ export default function CheckoutPage() {
             }
 
             const orderNumber = order?.order_number ?? order?.id ?? `ORD-${Date.now()}`;
+            // Normalisasi nomor WA toko: hapus "+", spasi, pastikan format 62xxx
+            const rawStorePhone = storeInfo?.owner?.phone_number ?? "";
+            const storeWaPhone = rawStorePhone.replace(/\D/g, "").replace(/^0/, "62");
             const confirmParams = new URLSearchParams({
                 orderNumber,
                 name: customerName,
                 orderId,
+                storeName: storeInfo?.name ?? "",
+                ...(storeWaPhone ? { storePhone: storeWaPhone } : {}),
                 ...(fulfillmentType === "delivery" ? { hasDelivery: "1" } : {}),
             });
             router.push(`/order/confirmation?${confirmParams.toString()}`);
@@ -611,9 +648,24 @@ export default function CheckoutPage() {
                                         pickedLocation={pickedLocation}
                                         onPick={(loc) => {
                                             setPickedLocation(loc);
-                                            // Auto-isi alamat dari reverse geocode jika field masih kosong
-                                            if (loc.address && !recipientAddress.trim()) {
+                                            // Auto-isi alamat dari reverse geocode
+                                            if (loc.address) {
                                                 setRecipientAddress(loc.address);
+                                            }
+                                            // Auto-search kecamatan dari address
+                                            if (loc.address && !destinationArea) {
+                                                // Extract kecamatan from address (biasanya ada di bagian reverse geocode)
+                                                const parts = loc.address.split(",").map((s: string) => s.trim());
+                                                // Coba search dengan part ke-3 atau ke-2 (biasanya kecamatan)
+                                                const searchTerm = parts[2] || parts[1] || parts[0];
+                                                if (searchTerm && searchTerm.length >= 3) {
+                                                    biteshipService.searchAreas(searchTerm).then((areas) => {
+                                                        if (areas.length > 0) {
+                                                            setDestinationArea(areas[0]);
+                                                            setSelectedRate(null);
+                                                        }
+                                                    }).catch(() => {});
+                                                }
                                             }
                                         }}
                                         onClear={() => setPickedLocation(null)}
@@ -656,7 +708,7 @@ export default function CheckoutPage() {
 
                                     {/* ④ Tarif kurir */}
                                     <DeliveryRateSelector
-                                        originAreaId={storeInfo?.area_id ?? null}
+                                        originAreaId={originAreaId}
                                         destinationArea={destinationArea}
                                         items={items.map((item) => ({
                                             name: item.product.name,
@@ -666,6 +718,10 @@ export default function CheckoutPage() {
                                         }))}
                                         selected={selectedRate}
                                         onChange={setSelectedRate}
+                                        originLat={originLat}
+                                        originLng={originLng}
+                                        destinationLat={pickedLocation?.lat}
+                                        destinationLng={pickedLocation?.lng}
                                     />
 
                                     {/* Selected rate summary */}

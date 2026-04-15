@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Truck, Loader2, AlertCircle, Clock, ChevronRight } from "lucide-react";
-import { biteshipService } from "../services/biteship-service";
+import { Truck, Loader2, AlertCircle, PackageX, ChevronRight, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
+import { biteshipService } from "../services/biteship-service";
 import type { BiteshipCourier, BiteshipArea } from "../types";
 
 interface Props {
@@ -12,22 +12,47 @@ interface Props {
   items: { name: string; value: number; weight: number; quantity: number }[];
   selected: BiteshipCourier | null;
   onChange: (rate: BiteshipCourier | null) => void;
+  originLat?: number | null;
+  originLng?: number | null;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
 }
 
 export function DeliveryRateSelector({
-  originAreaId,
   destinationArea,
   items,
   selected,
   onChange,
+  originLat,
+  originLng,
+  destinationLat,
+  destinationLng,
 }: Props) {
   const [rates, setRates] = useState<BiteshipCourier[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Koordinat dari map picker — Biteship areas tidak mengembalikan lat/lng
+  const dLat = destinationLat ?? null;
+  const dLng = destinationLng ?? null;
+
   useEffect(() => {
-    if (!originAreaId || !destinationArea) {
+    if (!destinationArea) {
       setRates([]);
+      setError(null);
+      onChange(null);
+      return;
+    }
+    if (!originLat || !originLng) {
+      setRates([]);
+      setError("origin_missing");
+      onChange(null);
+      return;
+    }
+    if (!dLat || !dLng) {
+      // Area dipilih tapi belum ada koordinat dari peta
+      setRates([]);
+      setError("map_required");
       onChange(null);
       return;
     }
@@ -35,43 +60,34 @@ export function DeliveryRateSelector({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setRates([]);
     onChange(null);
 
     biteshipService
       .getRates({
-        origin_area_id: originAreaId,
-        destination_area_id: destinationArea.id,
-        items: items.map((item) => ({
-          name: item.name,
-          value: item.value,
-          length: 10,
-          width: 10,
-          height: 10,
-          weight: item.weight || 200, // gram default 200g per item
-          quantity: item.quantity,
-        })),
+        origin_latitude: originLat,
+        origin_longitude: originLng,
+        destination_latitude: dLat,
+        destination_longitude: dLng,
+        items,
       })
-      .then((pricing) => {
-        if (!cancelled) {
-          setRates(pricing);
-          setLoading(false);
-        }
+      .then((couriers) => {
+        if (cancelled) return;
+        setRates(couriers);
+        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) {
-          setError("Gagal memuat tarif pengiriman");
-          setLoading(false);
-        }
+        if (cancelled) return;
+        setError("Gagal memuat tarif pengiriman. Coba lagi.");
+        setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [originAreaId, destinationArea?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationArea?.id, originLat, originLng, dLat, dLng]);
 
-  if (!originAreaId || !destinationArea) {
+  if (!destinationArea) {
     return (
       <div
         className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
@@ -88,8 +104,32 @@ export function DeliveryRateSelector({
       <div className="flex items-center gap-3 py-4 justify-center">
         <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#D97706" }} />
         <span className="text-sm font-bold" style={{ color: "#9C7D58" }}>
-          Memuat tarif pengiriman...
+          Menghitung tarif pengiriman...
         </span>
+      </div>
+    );
+  }
+
+  if (error === "origin_missing") {
+    return (
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl"
+        style={{ backgroundColor: "#FEF3C7", color: "#92400E", border: "1.5px solid #FDE68A" }}
+      >
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span className="text-sm font-medium">Memuat lokasi toko...</span>
+      </div>
+    );
+  }
+
+  if (error === "map_required") {
+    return (
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
+        style={{ borderColor: "rgba(124,74,30,0.18)", color: "#9C7D58" }}
+      >
+        <MapPin className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-medium">Tandai titik lokasi di peta untuk melihat tarif</span>
       </div>
     );
   }
@@ -97,11 +137,11 @@ export function DeliveryRateSelector({
   if (error) {
     return (
       <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl border"
-        style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA", color: "#DC2626" }}
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl"
+        style={{ backgroundColor: "#FEE2E2", color: "#DC2626", border: "1.5px solid #FECACA" }}
       >
         <AlertCircle className="h-4 w-4 shrink-0" />
-        <span className="text-sm font-bold">{error}</span>
+        <span className="text-sm font-medium">{error}</span>
       </div>
     );
   }
@@ -109,11 +149,11 @@ export function DeliveryRateSelector({
   if (rates.length === 0) {
     return (
       <div
-        className="text-center py-4 px-4 rounded-2xl border"
-        style={{ borderColor: "rgba(124,74,30,0.12)", color: "#9C7D58" }}
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
+        style={{ borderColor: "rgba(124,74,30,0.18)", color: "#9C7D58" }}
       >
-        <p className="text-sm font-bold">Tidak ada kurir tersedia</p>
-        <p className="text-xs mt-1">Coba ubah area tujuan</p>
+        <PackageX className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-medium">Tidak ada kurir tersedia untuk rute ini</span>
       </div>
     );
   }
@@ -124,13 +164,14 @@ export function DeliveryRateSelector({
         Pilih Layanan Pengiriman
       </p>
       {rates.map((rate) => {
+        const key = `${rate.courier_code}-${rate.courier_service_code}`;
         const isSelected =
           selected?.courier_code === rate.courier_code &&
           selected?.courier_service_code === rate.courier_service_code;
 
         return (
           <button
-            key={`${rate.courier_code}-${rate.courier_service_code}`}
+            key={key}
             type="button"
             onClick={() => onChange(isSelected ? null : rate)}
             className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all active:scale-[0.98] text-left"
@@ -139,31 +180,30 @@ export function DeliveryRateSelector({
               borderColor: isSelected ? "#F59E0B" : "rgba(124,74,30,0.12)",
             }}
           >
-            {/* Courier icon placeholder */}
             <div
-              className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 font-black text-xs"
+              className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: isSelected ? "#F59E0B" : "rgba(124,74,30,0.08)",
                 color: isSelected ? "#1C0A00" : "#6B4C2A",
               }}
             >
-              {rate.courier_name?.slice(0, 2).toUpperCase() || "JK"}
+              <Truck className="h-5 w-5" />
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black" style={{ color: "#1C0A00" }}>
                 {rate.courier_name} — {rate.courier_service_name}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <Clock className="h-3 w-3 shrink-0" style={{ color: "#9C7D58" }} />
-                <span className="text-[11px] font-medium" style={{ color: "#9C7D58" }}>
-                  {rate.duration || "Estimasi tidak tersedia"}
-                </span>
-              </div>
+              <p className="text-[11px] font-medium mt-0.5" style={{ color: "#9C7D58" }}>
+                {rate.description || rate.duration}
+              </p>
             </div>
 
             <div className="shrink-0 flex items-center gap-1.5">
-              <span className="text-sm font-black tabular-nums" style={{ color: isSelected ? "#92400E" : "#1C0A00" }}>
+              <span
+                className="text-sm font-black tabular-nums"
+                style={{ color: isSelected ? "#92400E" : "#1C0A00" }}
+              >
                 {formatCurrency(rate.price)}
               </span>
               <ChevronRight

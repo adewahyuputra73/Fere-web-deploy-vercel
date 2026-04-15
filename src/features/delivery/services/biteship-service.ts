@@ -5,13 +5,11 @@
 import pubClient from "@/lib/api/pub-client";
 import type {
   BiteshipArea,
-  BiteshipAreasResponse,
   BiteshipCourier,
-  BiteshipRatesResponse,
   BiteshipRateRequest,
   BiteshipOrderDetail,
   BiteshipTrackingResponse,
-  BiteshipCourierInfo,
+  BiteshipCancelReason,
 } from "../types";
 
 export const biteshipService = {
@@ -24,10 +22,8 @@ export const biteshipService = {
       const res = await pubClient.get<any>("/biteship/areas", {
         params: { keyword: keyword.trim() },
       });
-      // BE mungkin wrap: { data: { areas: [...] } } atau langsung { areas: [...] }
       const payload = res.data?.data ?? res.data;
-      const areas: BiteshipArea[] =
-        payload?.areas ?? payload?.data?.areas ?? [];
+      const areas: BiteshipArea[] = payload?.areas ?? [];
       return Array.isArray(areas) ? areas : [];
     } catch (err) {
       console.error("[biteshipService] searchAreas error:", err);
@@ -36,16 +32,13 @@ export const biteshipService = {
   },
 
   /**
-   * Ambil tarif pengiriman antara origin → destination.
+   * Ambil tarif pengiriman berdasarkan koordinat origin → destination.
    */
-  async getRates(
-    data: BiteshipRateRequest
-  ): Promise<BiteshipCourier[]> {
+  async getRates(data: BiteshipRateRequest): Promise<BiteshipCourier[]> {
     try {
-      const res = await pubClient.post<any>("/biteship/rates/couriers", data);
+      const res = await pubClient.post<any>("/biteship/rates/courier", data);
       const payload = res.data?.data ?? res.data;
-      const pricing: BiteshipCourier[] =
-        payload?.pricing ?? payload?.data?.pricing ?? [];
+      const pricing: BiteshipCourier[] = payload?.pricing ?? [];
       return Array.isArray(pricing) ? pricing : [];
     } catch (err) {
       console.error("[biteshipService] getRates error:", err);
@@ -57,12 +50,12 @@ export const biteshipService = {
    * Buat order pengiriman di Biteship.
    */
   async createOrder(data: Record<string, unknown>): Promise<any> {
-    const res = await pubClient.post<any>("/biteship/orders", data);
+    const res = await pubClient.post<any>("/biteship/order/create", data);
     return res.data?.data ?? res.data;
   },
 
   /**
-   * Ambil detail order Biteship (termasuk data driver).
+   * Ambil detail order Biteship.
    */
   async getOrder(biteshipOrderId: string): Promise<BiteshipOrderDetail | null> {
     try {
@@ -74,29 +67,39 @@ export const biteshipService = {
   },
 
   /**
-   * Tracking berdasarkan waybill / resi.
+   * Ambil daftar alasan pembatalan order.
    */
-  async trackWaybill(waybillId: string): Promise<BiteshipTrackingResponse | null> {
+  async getCancelReasons(): Promise<BiteshipCancelReason[]> {
     try {
-      const res = await pubClient.get<any>(`/biteship/trackings/${waybillId}`);
-      return res.data?.data ?? res.data ?? null;
-    } catch {
-      return null;
+      const res = await pubClient.get<any>("/biteship/order/cancel/reason");
+      const payload = res.data?.data ?? res.data;
+      const reasons: BiteshipCancelReason[] = payload?.cancellation_reasons ?? [];
+      return Array.isArray(reasons) ? reasons : [];
+    } catch (err) {
+      console.error("[biteshipService] getCancelReasons error:", err);
+      return [];
     }
   },
 
   /**
-   * Daftar kurir yang tersedia.
+   * Batalkan order berdasarkan order ID.
    */
-  async getCouriers(): Promise<BiteshipCourierInfo[]> {
+  async cancelOrder(
+    orderId: string,
+    data: { cancellation_reason_code: string; cancellation_reason: string }
+  ): Promise<void> {
+    await pubClient.post(`/biteship/order/cancel/${orderId}`, data);
+  },
+
+  /**
+   * Tracking order berdasarkan tracking ID.
+   */
+  async trackOrder(trackingId: string): Promise<BiteshipTrackingResponse | null> {
     try {
-      const res = await pubClient.get<any>("/biteship/couriers");
-      const payload = res.data?.data ?? res.data;
-      const couriers: BiteshipCourierInfo[] =
-        payload?.couriers ?? payload ?? [];
-      return Array.isArray(couriers) ? couriers : [];
+      const res = await pubClient.get<any>(`/biteship/order/tracking/${trackingId}`);
+      return res.data?.data ?? res.data ?? null;
     } catch {
-      return [];
+      return null;
     }
   },
 };
