@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/layout";
 import { Button, Badge } from "@/components/ui";
 import { DateRangePicker } from "@/features/reports/components/date-range-picker";
+import { ExportButton } from "@/features/reports/components/export-button";
 import { DataTable } from "@/features/reports/components/data-table";
 import { reportService } from "@/features/reports/services/report-service";
 import type { ReportOrderItem } from "@/features/reports/types";
@@ -109,6 +110,7 @@ export default function OrderHistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: firstOfMonth, endDate: today });
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
@@ -300,6 +302,28 @@ export default function OrderHistoryPage() {
               {filteredOrders.length} dari {totalCount} pesanan
             </p>
           )}
+          <ExportButton
+            onClick={async () => {
+              setIsExporting(true);
+              try {
+                const blob = await reportService.ordersExport({
+                  start_date: toDateStr(dateRange.startDate),
+                  end_date: toDateStr(dateRange.endDate),
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Riwayat_Pesanan_${Date.now()}.xlsx`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+                // silent — user can retry
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            isLoading={isExporting}
+          />
         </div>
       </div>
 

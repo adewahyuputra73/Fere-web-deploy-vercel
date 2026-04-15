@@ -92,43 +92,16 @@ export default function SalesSummaryPage() {
     if (!summary) return;
     setIsExporting(true);
     try {
-      const { ExcelExportService } = await import("@/lib/excel-export");
-      const exportService = new ExcelExportService();
-
-      exportService.addMetadataSheet({
-        title: "Laporan Ringkasan Penjualan",
-        period: `${dateRange.startDate.toLocaleDateString("id-ID")} - ${dateRange.endDate.toLocaleDateString("id-ID")}`,
-        generatedAt: new Date().toLocaleString("id-ID"),
-        generatedBy: "Admin",
-        outletName: "Semua",
+      const blob = await reportService.summaryExport({
+        start_date: toDateStr(dateRange.startDate),
+        end_date: toDateStr(dateRange.endDate),
       });
-
-      exportService.addSummarySheet([
-        { label: "Total Transaksi", value: formatNumber(summary.total_transactions) },
-        { label: "Penjualan Kotor", value: formatCurrency(summary.gross_sales) },
-        { label: "Rata-rata / Transaksi", value: formatCurrency(summary.average_transaction) },
-        { label: "Penjualan Bersih", value: formatCurrency(summary.net_sales) },
-      ]);
-
-      exportService.addDataSheet({
-        name: "Rincian Penjualan",
-        columns: [
-          { header: "Keterangan", key: "label", width: 40 },
-          { header: "Nilai", key: "value", width: 30, style: { numFmt: "#,##0" } },
-        ],
-        data: salesDetails.map((item) => ({ label: item.label, value: Math.abs(item.value) })),
-      });
-
-      exportService.addDataSheet({
-        name: "Metode Pembayaran",
-        columns: [
-          { header: "Metode", key: "method", width: 30 },
-          { header: "Total Nilai", key: "total", width: 30, style: { numFmt: "#,##0" } },
-        ],
-        data: paymentMethods,
-      });
-
-      await exportService.download(`Ringkasan_Penjualan_${new Date().getTime()}`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Ringkasan_Penjualan_${Date.now()}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
       showToast("Laporan berhasil diekspor", "success");
     } catch {
       showToast("Gagal mengekspor laporan", "error");

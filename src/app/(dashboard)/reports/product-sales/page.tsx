@@ -108,30 +108,17 @@ export default function ProductSalesPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const { ExcelExportService } = await import("@/lib/excel-export");
-      const exportService = new ExcelExportService();
-
-      exportService.addMetadataSheet({
-        title: "Laporan Penjualan Produk",
-        period: `${dateRange.startDate.toLocaleDateString("id-ID")} - ${dateRange.endDate.toLocaleDateString("id-ID")}`,
-        generatedAt: new Date().toLocaleString("id-ID"),
-        generatedBy: "Admin",
-        outletName: "Semua",
+      const blob = await reportService.productsExport({
+        start_date: toDateStr(dateRange.startDate),
+        end_date: toDateStr(dateRange.endDate),
       });
-
-      exportService.addDataSheet({
-        name: "Data Penjualan Produk",
-        columns: [
-          { header: "Nama Produk", key: "name", width: 35 },
-          { header: "Kategori", key: "category", width: 20 },
-          { header: "Item Terjual", key: "total_qty", width: 15, style: { numFmt: "#,##0" } },
-          { header: "Total Penjualan", key: "total_revenue", width: 25, style: { numFmt: "#,##0" } },
-        ],
-        data: filteredProducts,
-      });
-
-      await exportService.download(`Penjualan_Produk_${new Date().getTime()}`);
-      showToast(`Laporan diekspor (${filteredProducts.length} produk)`, "success");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Penjualan_Produk_${Date.now()}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Laporan berhasil diekspor", "success");
     } catch {
       showToast("Gagal mengekspor laporan", "error");
     } finally {

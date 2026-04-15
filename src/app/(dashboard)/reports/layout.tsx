@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  FileBarChart, 
-  Package, 
-  FolderTree, 
-  TrendingUp, 
-  DollarSign, 
-  XCircle, 
-  Mail, 
-  Download, 
-  History 
+import {
+  FileBarChart,
+  Package,
+  FolderTree,
+  TrendingUp,
+  DollarSign,
+  XCircle,
+  Mail,
+  Download,
+  History,
+  Clock,
 } from "lucide-react";
 
 interface ReportsLayoutProps {
@@ -64,6 +65,11 @@ const reportNavItems = [
     label: "Riwayat Pesanan",
     href: "/reports/order-history",
     icon: History,
+  },
+  {
+    label: "Laporan Shift",
+    href: "/reports/shifts",
+    icon: Clock,
   },
 ];
 
