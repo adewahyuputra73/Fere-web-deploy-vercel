@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Truck, Loader2, AlertCircle, PackageX, ChevronRight, MapPin } from "lucide-react";
+import { Truck, Loader2, AlertCircle, PackageX, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { biteshipService } from "../services/biteship-service";
 import type { BiteshipCourier, BiteshipArea } from "../types";
@@ -32,27 +32,10 @@ export function DeliveryRateSelector({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Koordinat dari map picker — Biteship areas tidak mengembalikan lat/lng
-  const dLat = destinationLat ?? null;
-  const dLng = destinationLng ?? null;
-
   useEffect(() => {
     if (!destinationArea) {
       setRates([]);
       setError(null);
-      onChange(null);
-      return;
-    }
-    if (!originLat || !originLng) {
-      setRates([]);
-      setError("origin_missing");
-      onChange(null);
-      return;
-    }
-    if (!dLat || !dLng) {
-      // Area dipilih tapi belum ada koordinat dari peta
-      setRates([]);
-      setError("map_required");
       onChange(null);
       return;
     }
@@ -64,10 +47,10 @@ export function DeliveryRateSelector({
 
     biteshipService
       .getRates({
-        origin_latitude: originLat,
-        origin_longitude: originLng,
-        destination_latitude: dLat,
-        destination_longitude: dLng,
+        origin_latitude: originLat ?? 0,
+        origin_longitude: originLng ?? 0,
+        destination_latitude: destinationLat ?? 0,
+        destination_longitude: destinationLng ?? 0,
         items,
       })
       .then((couriers) => {
@@ -85,7 +68,7 @@ export function DeliveryRateSelector({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationArea?.id, originLat, originLng, dLat, dLng]);
+  }, [destinationArea?.id]);
 
   if (!destinationArea) {
     return (
@@ -106,30 +89,6 @@ export function DeliveryRateSelector({
         <span className="text-sm font-bold" style={{ color: "#9C7D58" }}>
           Menghitung tarif pengiriman...
         </span>
-      </div>
-    );
-  }
-
-  if (error === "origin_missing") {
-    return (
-      <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl"
-        style={{ backgroundColor: "#FEF3C7", color: "#92400E", border: "1.5px solid #FDE68A" }}
-      >
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-        <span className="text-sm font-medium">Memuat lokasi toko...</span>
-      </div>
-    );
-  }
-
-  if (error === "map_required") {
-    return (
-      <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
-        style={{ borderColor: "rgba(124,74,30,0.18)", color: "#9C7D58" }}
-      >
-        <MapPin className="h-4 w-4 shrink-0" />
-        <span className="text-sm font-medium">Tandai titik lokasi di peta untuk melihat tarif</span>
       </div>
     );
   }
