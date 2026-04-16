@@ -9,6 +9,26 @@ import {
 } from "lucide-react";
 
 // ── WhatsApp Notification Bottom Sheet ────────────────────────────────────────
+type NotifType = "delivery" | "pickup" | "dine_in";
+
+const NOTIF_COPY: Record<NotifType, { title: string; subtitle: string; message: string }> = {
+    delivery: {
+        title: "Mau update status pengiriman?",
+        subtitle: "Kirim pesan ke WhatsApp toko agar kamu dapat notif saat pesanan dikirim",
+        message: "ketika pesanan sudah dikirim atau ada update status pengiriman",
+    },
+    pickup: {
+        title: "Mau notif saat pesanan siap?",
+        subtitle: "Kirim pesan ke WhatsApp toko agar kamu dapat notif saat pesanan siap diambil",
+        message: "ketika pesanan sudah siap untuk diambil",
+    },
+    dine_in: {
+        title: "Mau notif saat pesanan siap?",
+        subtitle: "Kirim pesan ke WhatsApp toko agar kamu dapat notif saat pesanan siap disajikan",
+        message: "ketika pesanan sudah siap disajikan di meja",
+    },
+};
+
 function WhatsAppNotifSheet({
     open,
     onClose,
@@ -16,6 +36,7 @@ function WhatsAppNotifSheet({
     storePhone,
     customerName,
     orderNumber,
+    notifType,
 }: {
     open: boolean;
     onClose: () => void;
@@ -23,9 +44,11 @@ function WhatsAppNotifSheet({
     storePhone: string;
     customerName: string;
     orderNumber: string;
+    notifType: NotifType;
 }) {
+    const copy = NOTIF_COPY[notifType];
     const template = encodeURIComponent(
-        `Halo ${storeName}, saya ${customerName} dengan pesanan #${orderNumber}. Mohon kabari saya via WhatsApp ini ketika pesanan sudah dikirim atau ada update status pengiriman. Terima kasih! 🙏`
+        `Halo ${storeName}, saya ${customerName} dengan pesanan #${orderNumber}. Mohon kabari saya via WhatsApp ini ${copy.message}. Terima kasih! 🙏`
     );
     const waUrl = `https://wa.me/${storePhone}?text=${template}`;
 
@@ -61,13 +84,13 @@ function WhatsAppNotifSheet({
                     className="text-xl font-black text-center mb-2 tracking-tight"
                     style={{ color: "#1C0A00" }}
                 >
-                    Mau update status pengiriman?
+                    {copy.title}
                 </h2>
                 <p
                     className="text-sm font-medium text-center mb-6 px-2 leading-relaxed"
                     style={{ color: "#6B4C2A" }}
                 >
-                    Kirim pesan ke WhatsApp toko agar kamu dapat notif saat pesanan dikirim
+                    {copy.subtitle}
                 </p>
 
                 {/* Preview template */}
@@ -85,7 +108,7 @@ function WhatsAppNotifSheet({
                     >
                         Pesan yang akan dikirim ke {storeName}
                     </span>
-                    Halo {storeName}, saya {customerName} dengan pesanan #{orderNumber}. Mohon kabari saya via WhatsApp ini ketika pesanan sudah dikirim atau ada update status pengiriman. Terima kasih! 🙏
+                    Halo {storeName}, saya {customerName} dengan pesanan #{orderNumber}. Mohon kabari saya via WhatsApp ini {copy.message}. Terima kasih! 🙏
                 </div>
 
                 <div className="space-y-3">
@@ -297,8 +320,8 @@ function ConfirmationContent() {
                     </Link>
                 )}
 
-                {/* DELIVERY: WA notif button */}
-                {isDelivery && storePhone && (
+                {/* WA notif button — semua tipe (label menyesuaikan) */}
+                {storePhone && (isDelivery || isPickup || isDineIn) && (
                     <button
                         type="button"
                         onClick={() => setShowWaSheet(true)}
@@ -306,7 +329,9 @@ function ConfirmationContent() {
                         style={{ borderColor: "#25D366", color: "#16A34A", backgroundColor: "#F0FDF4" }}
                     >
                         <MessageCircle className="h-5 w-5" />
-                        Minta notif pengiriman via WA
+                        {isDelivery
+                            ? "Minta notif pengiriman via WA"
+                            : "Minta notif pesanan siap via WA"}
                     </button>
                 )}
 
@@ -386,6 +411,7 @@ function ConfirmationContent() {
                 storePhone={storePhone}
                 customerName={customerName}
                 orderNumber={orderNumber}
+                notifType={isDelivery ? "delivery" : isPickup ? "pickup" : "dine_in"}
             />
         </div>
     );
