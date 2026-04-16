@@ -331,6 +331,7 @@ export default function CheckoutPage() {
                 storeName: storeInfo?.name ?? "",
                 ...(storeWaPhone ? { storePhone: storeWaPhone } : {}),
                 ...(fulfillmentType === "delivery" ? { hasDelivery: "1" } : {}),
+                ...(isPreOrder ? { preOrder: "1" } : {}),
             });
             router.push(`/order/confirmation?${confirmParams.toString()}`);
         } catch (err: any) {

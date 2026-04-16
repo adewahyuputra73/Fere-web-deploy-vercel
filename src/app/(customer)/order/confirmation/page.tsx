@@ -152,12 +152,15 @@ function ConfirmationContent() {
     const orderId = searchParams.get("orderId") || "";
     const fulfillmentType = searchParams.get("type") as "dine_in" | "pickup" | "delivery" | null;
     const hasDelivery = searchParams.get("hasDelivery") === "1";
+    const isPreOrder = searchParams.get("preOrder") === "1";
     const storeName = searchParams.get("storeName") || "Toko";
     const storePhone = searchParams.get("storePhone") || "";
 
     const isDelivery = fulfillmentType === "delivery" || (!fulfillmentType && hasDelivery);
     const isPickup = fulfillmentType === "pickup";
     const isDineIn = fulfillmentType === "dine_in";
+    // WA notif: tampil untuk delivery, pickup, dan dine-in (hanya jika pre-order)
+    const showWaNotif = Boolean(storePhone) && (isDelivery || isPickup || (isDineIn && isPreOrder));
 
     const [showWaSheet, setShowWaSheet] = useState(false);
 
@@ -194,214 +197,304 @@ function ConfirmationContent() {
     const backButtonLocked = isDineIn && countdown !== null && countdown > 0;
 
     return (
-        <div className="container mx-auto px-4 pt-16 pb-32 max-w-xl text-center">
-            {/* Success Animation */}
-            <div className="relative mb-12">
-                <div className="absolute inset-0 bg-primary/20 scale-150 blur-3xl rounded-full opacity-30 animate-pulse" />
-                <div className="relative h-32 w-32 rounded-[2.5rem] bg-emerald-500 shadow-2xl shadow-emerald-500/40 flex items-center justify-center mx-auto transform rotate-12 transition-transform hover:rotate-0 duration-500">
-                    <CheckCircle2 className="h-16 w-16 text-white stroke-[3px]" />
-                </div>
-            </div>
-
-            <h1 className="text-4xl font-black text-text-primary mb-4 tracking-tighter">
-                Pesanan Diterima!
-            </h1>
-            <p className="text-text-secondary leading-relaxed mb-10 font-medium px-4">
-                Terima kasih <span className="text-text-primary font-black">{customerName}</span>, pesanan Anda sedang kami proses.
-            </p>
-
-            {/* Order Ticket */}
-            <div className="bg-white rounded-[2.5rem] border border-divider shadow-card p-10 mb-8 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <Ticket className="h-40 w-40 -rotate-12" />
-                </div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-text-disabled mb-2">
-                    Nomor Antrean / Pesanan
-                </p>
-                <div className="text-5xl font-black text-primary tracking-tight mb-8">
-                    #{orderNumber}
-                </div>
-
-                {/* Dine-in info: tunjukkan ke pelayan */}
-                {isDineIn && (
+        <div className="min-h-screen" style={{ backgroundColor: "#FEFAF5" }}>
+            <div className="container mx-auto px-4 pt-16 pb-32 max-w-xl text-center">
+                {/* Success Animation */}
+                <div className="relative mb-10">
                     <div
-                        className="rounded-2xl px-4 py-3 mb-6 flex items-center gap-3 text-left"
-                        style={{ backgroundColor: "#FEF3C7", border: "1.5px solid rgba(245,158,11,0.3)" }}
-                    >
-                        <div
-                            className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: "#F59E0B" }}
-                        >
-                            <ShoppingBag className="h-4 w-4 text-white" />
-                        </div>
-                        <p className="text-[11px] font-bold leading-snug" style={{ color: "#92400E" }}>
-                            Tunjukkan nomor ini ke pelayan atau kasir untuk konfirmasi pesananmu
-                        </p>
-                    </div>
-                )}
-
-                {/* Pickup info: ke kasir setelah siap */}
-                {isPickup && (
+                        className="absolute inset-0 scale-150 blur-3xl rounded-full opacity-25 animate-pulse pointer-events-none"
+                        style={{ backgroundColor: "#F59E0B" }}
+                    />
                     <div
-                        className="rounded-2xl px-4 py-3 mb-6 flex items-center gap-3 text-left"
-                        style={{ backgroundColor: "#EFF6FF", border: "1.5px solid rgba(59,130,246,0.25)" }}
+                        className="relative h-32 w-32 rounded-[2.5rem] flex items-center justify-center mx-auto transform rotate-6 transition-transform hover:rotate-0 duration-500"
+                        style={{
+                            backgroundColor: "#F59E0B",
+                            boxShadow: "0 16px 48px rgba(245,158,11,0.4)",
+                        }}
                     >
-                        <div
-                            className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: "#DBEAFE" }}
-                        >
-                            <Eye className="h-4 w-4" style={{ color: "#2563EB" }} />
-                        </div>
-                        <p className="text-[11px] font-bold leading-snug" style={{ color: "#1E40AF" }}>
-                            Pantau status di bawah — kami akan beri tahu saat pesanan siap diambil
-                        </p>
+                        <CheckCircle2 className="h-16 w-16 stroke-[2.5px]" style={{ color: "#1C0A00" }} />
                     </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 border-t border-divider pt-8">
-                    <button
-                        onClick={() => {
-                            if (orderId) {
-                                const url = `${window.location.origin}/invoice/${orderId}`;
-                                const w = window.open(url, "_blank");
-                                if (w) w.addEventListener("load", () => setTimeout(() => w.print(), 500));
-                            }
-                        }}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                            <Printer className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Simpan PDF</span>
-                    </button>
-                    <button
-                        onClick={async () => {
-                            const url = orderId ? `${window.location.origin}/invoice/${orderId}` : window.location.href;
-                            if (navigator.share) {
-                                try { await navigator.share({ title: `Pesanan #${orderNumber}`, url }); } catch {}
-                            } else {
-                                await navigator.clipboard.writeText(url);
-                                alert("Link invoice disalin ke clipboard!");
-                            }
-                        }}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                            <Share2 className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Bagikan</span>
-                    </button>
                 </div>
-            </div>
 
-            {/* Action buttons */}
-            <div className="space-y-4">
-
-                {/* PICKUP: Pantau Status — primary CTA */}
-                {isPickup && orderId && (
-                    <Link
-                        href={`/order/status/${orderId}`}
-                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg shadow-xl"
-                        style={{ backgroundColor: "#F59E0B", color: "#1C0A00", boxShadow: "0 8px 24px rgba(245,158,11,0.35)" }}
-                    >
-                        <Eye className="mr-3 h-5 w-5" />
-                        Pantau Status Pesanan
-                    </Link>
-                )}
-
-                {/* DELIVERY: Lacak Pesanan */}
-                {orderId && isDelivery && (
-                    <Link
-                        href={`/order/tracking/${orderId}`}
-                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/25"
-                    >
-                        <Truck className="mr-3 h-5 w-5" />
-                        Lacak Pesanan
-                    </Link>
-                )}
-
-                {/* WA notif button — semua tipe (label menyesuaikan) */}
-                {storePhone && (isDelivery || isPickup || isDineIn) && (
-                    <button
-                        type="button"
-                        onClick={() => setShowWaSheet(true)}
-                        className="inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2"
-                        style={{ borderColor: "#25D366", color: "#16A34A", backgroundColor: "#F0FDF4" }}
-                    >
-                        <MessageCircle className="h-5 w-5" />
-                        {isDelivery
-                            ? "Minta notif pengiriman via WA"
-                            : "Minta notif pesanan siap via WA"}
-                    </button>
-                )}
-
-                {/* Invoice (semua tipe) */}
-                {orderId && (
-                    <Link
-                        href={`/invoice/${orderId}`}
-                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2"
-                        style={{ borderColor: "rgba(245,158,11,0.4)", color: "#D97706", backgroundColor: "#FFFBEB" }}
-                    >
-                        <FileText className="mr-3 h-4 w-4" />
-                        Lihat Invoice
-                    </Link>
-                )}
-
-                {/* Ulasan (semua tipe) */}
-                {orderId && (
-                    <Link
-                        href={`/order/review?order_id=${orderId}`}
-                        className="inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2 border-primary text-primary hover:bg-primary/5"
-                    >
-                        Beri Ulasan
-                    </Link>
-                )}
-
-                {/* Kembali ke Menu — dikunci 8 detik untuk dine_in */}
-                <Link
-                    href="/order"
-                    onClick={(e) => { if (backButtonLocked) e.preventDefault(); }}
-                    className="inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg shadow-xl"
-                    style={
-                        backButtonLocked
-                            ? { backgroundColor: "rgba(28,10,0,0.1)", color: "#C4A882", cursor: "not-allowed", boxShadow: "none" }
-                            : { backgroundColor: "#1C0A00", color: "#FFFFFF", boxShadow: "0 8px 24px rgba(28,10,0,0.25)" }
-                    }
+                <h1
+                    className="text-4xl font-black mb-4 tracking-tight font-[family-name:var(--font-fraunces)]"
+                    style={{ color: "#1C0A00" }}
                 >
-                    <Home className="mr-3 h-5 w-5" />
-                    {backButtonLocked
-                        ? `Kembali ke Menu (${countdown})`
-                        : "Kembali ke Menu"
-                    }
-                </Link>
-
-                <p className="text-xs text-text-disabled font-bold uppercase tracking-widest pt-4">
-                    Butuh bantuan?{" "}
-                    {storePhone ? (
-                        <a href={`https://wa.me/${storePhone}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                            Hubungi Toko
-                        </a>
-                    ) : (
-                        <span className="text-primary">Hubungi Toko</span>
-                    )}
+                    Pesanan Diterima!
+                </h1>
+                <p className="leading-relaxed mb-10 font-medium px-4" style={{ color: "#9C7D58" }}>
+                    Terima kasih{" "}
+                    <span className="font-black" style={{ color: "#1C0A00" }}>{customerName}</span>
+                    , pesanan Anda sedang kami proses.
                 </p>
-            </div>
 
-            {/* Info card bayar — hanya dine_in & pickup */}
-            {(isDineIn || isPickup || !fulfillmentType) && (
-                <div className="mt-12 bg-slate-100/50 rounded-3xl p-6 border border-divider text-left flex items-start gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
-                        <CreditCard className="h-6 w-6 text-text-secondary" />
+                {/* Order Ticket */}
+                <div
+                    className="rounded-[2rem] p-8 mb-6 relative overflow-hidden group"
+                    style={{
+                        backgroundColor: "#FFFFFF",
+                        border: "1.5px solid rgba(124,74,30,0.1)",
+                        boxShadow: "0 4px 24px rgba(28,10,0,0.06)",
+                    }}
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                        <Ticket className="h-40 w-40 -rotate-12" style={{ color: "#1C0A00" }} />
                     </div>
-                    <div>
-                        <h3 className="text-sm font-black text-text-primary mb-1">Bayar di Tempat</h3>
-                        <p className="text-[11px] text-text-secondary font-medium leading-relaxed">
-                            Tunjukkan nomor pesanan di atas ke meja kasir untuk melakukan pembayaran dan mengambil pesanan.
-                        </p>
+                    <p
+                        className="text-[11px] font-black uppercase tracking-[0.2em] mb-2"
+                        style={{ color: "#C4A882" }}
+                    >
+                        Nomor Antrean / Pesanan
+                    </p>
+                    <div
+                        className="text-5xl font-black tracking-tight mb-8 font-[family-name:var(--font-fraunces)]"
+                        style={{ color: "#D97706" }}
+                    >
+                        #{orderNumber}
                     </div>
-                    <ChevronRight className="h-5 w-5 text-text-disabled mt-3 ml-auto" />
+
+                    {/* Dine-in info: mohon tunggu */}
+                    {isDineIn && (
+                        <div
+                            className="rounded-2xl px-4 py-3 mb-6 flex items-center gap-3 text-left"
+                            style={{ backgroundColor: "#FEF3C7", border: "1.5px solid rgba(245,158,11,0.3)" }}
+                        >
+                            <div
+                                className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: "#F59E0B" }}
+                            >
+                                <ShoppingBag className="h-4 w-4" style={{ color: "#1C0A00" }} />
+                            </div>
+                            <p className="text-[11px] font-bold leading-snug" style={{ color: "#92400E" }}>
+                                Mohon menunggu, pesananmu sedang kami proses
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Pickup info: pantau status di bawah */}
+                    {isPickup && (
+                        <div
+                            className="rounded-2xl px-4 py-3 mb-6 flex items-center gap-3 text-left"
+                            style={{ backgroundColor: "#FEF3C7", border: "1.5px solid rgba(245,158,11,0.3)" }}
+                        >
+                            <div
+                                className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: "#F59E0B" }}
+                            >
+                                <Eye className="h-4 w-4" style={{ color: "#1C0A00" }} />
+                            </div>
+                            <p className="text-[11px] font-bold leading-snug" style={{ color: "#92400E" }}>
+                                Pantau status di bawah — kami akan beri tahu saat pesanan siap diambil
+                            </p>
+                        </div>
+                    )}
+
+                    <div
+                        className="grid grid-cols-2 gap-3 pt-8"
+                        style={{ borderTop: "1px dashed rgba(124,74,30,0.15)" }}
+                    >
+                        <button
+                            onClick={() => {
+                                if (orderId) {
+                                    const url = `${window.location.origin}/invoice/${orderId}`;
+                                    const w = window.open(url, "_blank");
+                                    if (w) w.addEventListener("load", () => setTimeout(() => w.print(), 500));
+                                }
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all active:scale-95"
+                            style={{ backgroundColor: "#FFF8EE" }}
+                        >
+                            <div
+                                className="h-10 w-10 rounded-xl flex items-center justify-center transition-colors"
+                                style={{ backgroundColor: "#FEF3C7", color: "#D97706" }}
+                            >
+                                <Printer className="h-5 w-5" />
+                            </div>
+                            <span
+                                className="text-[10px] font-black uppercase tracking-widest"
+                                style={{ color: "#9C7D58" }}
+                            >
+                                Simpan PDF
+                            </span>
+                        </button>
+                        <button
+                            onClick={async () => {
+                                const url = orderId ? `${window.location.origin}/invoice/${orderId}` : window.location.href;
+                                if (navigator.share) {
+                                    try { await navigator.share({ title: `Pesanan #${orderNumber}`, url }); } catch {}
+                                } else {
+                                    await navigator.clipboard.writeText(url);
+                                    alert("Link invoice disalin ke clipboard!");
+                                }
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all active:scale-95"
+                            style={{ backgroundColor: "#FFF8EE" }}
+                        >
+                            <div
+                                className="h-10 w-10 rounded-xl flex items-center justify-center transition-colors"
+                                style={{ backgroundColor: "#FEF3C7", color: "#D97706" }}
+                            >
+                                <Share2 className="h-5 w-5" />
+                            </div>
+                            <span
+                                className="text-[10px] font-black uppercase tracking-widest"
+                                style={{ color: "#9C7D58" }}
+                            >
+                                Bagikan
+                            </span>
+                        </button>
+                    </div>
                 </div>
-            )}
+
+                {/* Action buttons */}
+                <div className="space-y-3">
+
+                    {/* PICKUP: Pantau Status — primary CTA */}
+                    {isPickup && orderId && (
+                        <Link
+                            href={`/order/status/${orderId}`}
+                            className="inline-flex items-center justify-center font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg"
+                            style={{
+                                backgroundColor: "#F59E0B",
+                                color: "#1C0A00",
+                                boxShadow: "0 8px 24px rgba(245,158,11,0.35)",
+                            }}
+                        >
+                            <Eye className="mr-3 h-5 w-5" />
+                            Pantau Status Pesanan
+                        </Link>
+                    )}
+
+                    {/* DELIVERY: Lacak Pesanan */}
+                    {orderId && isDelivery && (
+                        <Link
+                            href={`/order/tracking/${orderId}`}
+                            className="inline-flex items-center justify-center font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg"
+                            style={{
+                                backgroundColor: "#F59E0B",
+                                color: "#1C0A00",
+                                boxShadow: "0 8px 24px rgba(245,158,11,0.35)",
+                            }}
+                        >
+                            <Truck className="mr-3 h-5 w-5" />
+                            Lacak Pesanan
+                        </Link>
+                    )}
+
+                    {/* WA notif button — delivery, pickup, dine-in (hanya pre-order) */}
+                    {showWaNotif && (
+                        <button
+                            type="button"
+                            onClick={() => setShowWaSheet(true)}
+                            className="inline-flex items-center justify-center gap-2 font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2"
+                            style={{
+                                borderColor: "rgba(245,158,11,0.4)",
+                                color: "#D97706",
+                                backgroundColor: "#FFFBEB",
+                            }}
+                        >
+                            <MessageCircle className="h-5 w-5" />
+                            {isDelivery
+                                ? "Minta notif pengiriman via WA"
+                                : "Minta notif pesanan siap via WA"}
+                        </button>
+                    )}
+
+                    {/* Invoice (semua tipe) */}
+                    {orderId && (
+                        <Link
+                            href={`/invoice/${orderId}`}
+                            className="inline-flex items-center justify-center font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2"
+                            style={{
+                                borderColor: "rgba(124,74,30,0.2)",
+                                color: "#6B4C2A",
+                                backgroundColor: "#FFF8EE",
+                            }}
+                        >
+                            <FileText className="mr-3 h-4 w-4" />
+                            Lihat Invoice
+                        </Link>
+                    )}
+
+                    {/* Ulasan (semua tipe) */}
+                    {orderId && (
+                        <Link
+                            href={`/order/review?order_id=${orderId}`}
+                            className="inline-flex items-center justify-center font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-14 text-base border-2"
+                            style={{
+                                borderColor: "rgba(124,74,30,0.2)",
+                                color: "#6B4C2A",
+                                backgroundColor: "#FFF8EE",
+                            }}
+                        >
+                            Beri Ulasan
+                        </Link>
+                    )}
+
+                    {/* Kembali ke Menu — dikunci 8 detik untuk dine_in */}
+                    <Link
+                        href="/order"
+                        onClick={(e) => { if (backButtonLocked) e.preventDefault(); }}
+                        className="inline-flex items-center justify-center font-black transition-all duration-200 rounded-2xl active:scale-[0.98] w-full h-16 text-lg"
+                        style={
+                            backButtonLocked
+                                ? { backgroundColor: "rgba(28,10,0,0.1)", color: "#C4A882", cursor: "not-allowed", boxShadow: "none" }
+                                : { backgroundColor: "#1C0A00", color: "#FFFFFF", boxShadow: "0 8px 24px rgba(28,10,0,0.25)" }
+                        }
+                    >
+                        <Home className="mr-3 h-5 w-5" />
+                        {backButtonLocked
+                            ? `Kembali ke Menu (${countdown})`
+                            : "Kembali ke Menu"
+                        }
+                    </Link>
+
+                    <p className="text-[11px] font-black uppercase tracking-widest pt-4" style={{ color: "#C4A882" }}>
+                        Butuh bantuan?{" "}
+                        {storePhone ? (
+                            <a
+                                href={`https://wa.me/${storePhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                                style={{ color: "#D97706" }}
+                            >
+                                Hubungi Toko
+                            </a>
+                        ) : (
+                            <span style={{ color: "#D97706" }}>Hubungi Toko</span>
+                        )}
+                    </p>
+                </div>
+
+                {/* Info card bayar — hanya dine_in & pickup */}
+                {(isDineIn || isPickup || !fulfillmentType) && (
+                    <div
+                        className="mt-10 rounded-[22px] p-5 text-left flex items-start gap-4"
+                        style={{
+                            backgroundColor: "#FFFFFF",
+                            border: "1.5px solid rgba(124,74,30,0.1)",
+                            boxShadow: "0 2px 12px rgba(28,10,0,0.04)",
+                        }}
+                    >
+                        <div
+                            className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: "#FEF3C7" }}
+                        >
+                            <CreditCard className="h-6 w-6" style={{ color: "#D97706" }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-black mb-1" style={{ color: "#1C0A00" }}>
+                                Bayar di Tempat
+                            </h3>
+                            <p className="text-[11px] font-medium leading-relaxed" style={{ color: "#9C7D58" }}>
+                                Tunjukkan nomor pesanan di atas ke meja kasir untuk melakukan pembayaran dan mengambil pesanan.
+                            </p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 mt-3 shrink-0" style={{ color: "#C4A882" }} />
+                    </div>
+                )}
+            </div>
 
             {/* WA Bottom Sheet */}
             <WhatsAppNotifSheet
