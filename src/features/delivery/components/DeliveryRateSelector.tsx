@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Truck, Loader2, AlertCircle, PackageX, ChevronRight } from "lucide-react";
+import { Truck, Loader2, AlertCircle, PackageX, ChevronRight, Store } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { biteshipService } from "../services/biteship-service";
 import type { BiteshipCourier, BiteshipArea } from "../types";
@@ -18,6 +18,41 @@ interface Props {
   destinationLng?: number | null;
 }
 
+/**
+ * Transformasi raw Biteship pricing → 2 pilihan tampilan:
+ * 1. Kurir Online  = kurir dengan harga tertinggi dari semua opsi online (Grab/GoJek)
+ *                    → pakai courier_code/service_code asli untuk buat Biteship order
+ * 2. Kurir Internal = harga tertinggi - Rp 1.000, tidak buat Biteship order
+ */
+function buildDisplayRates(rawRates: BiteshipCourier[]): BiteshipCourier[] {
+  if (rawRates.length === 0) return [];
+
+  // Kurir dengan harga tertinggi → jadi "Kurir Online"
+  const maxRate = rawRates.reduce((best, r) => (r.price > best.price ? r : best));
+
+  const onlineRate: BiteshipCourier = {
+    ...maxRate,
+    courier_name: "Kurir Online",
+    courier_service_name: "GoSend / GrabExpress",
+    description: "Diantar oleh mitra kurir online terpilih",
+    is_internal: false,
+  };
+
+  const internalRate: BiteshipCourier = {
+    ...maxRate,
+    courier_code: "internal",
+    courier_service_code: "internal",
+    courier_name: "Kurir Internal",
+    courier_service_name: "Antar Langsung",
+    description: "Diantar langsung oleh tim toko",
+    price: Math.max(0, maxRate.price - 1000),
+    shipping_fee: Math.max(0, maxRate.shipping_fee - 1000),
+    is_internal: true,
+  };
+
+  return [onlineRate, internalRate];
+}
+
 export function DeliveryRateSelector({
   destinationArea,
   items,
@@ -32,8 +67,42 @@ export function DeliveryRateSelector({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Koersi string→number (BE kadang kirim koordinat sebagai string)
+  const oLat = originLat != null ? Number(originLat) : null;
+  const oLng = originLng != null ? Number(originLng) : null;
+  const dLat = destinationLat != null ? Number(destinationLat) : null;
+  const dLng = destinationLng != null ? Number(destinationLng) : null;
+
+  // Bounding box Indonesia — lat [-11, 6], lng [95, 141]
+  const inID = (lat: number | null, lng: number | null) =>
+    lat != null &&
+    lng != null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -11 &&
+    lat <= 6 &&
+    lng >= 95 &&
+    lng <= 141;
+
+  const hasValidOrigin = inID(oLat, oLng);
+  const hasValidDestination = inID(dLat, dLng);
+
   useEffect(() => {
     if (!destinationArea) {
+      setRates([]);
+      setError(null);
+      onChange(null);
+      return;
+    }
+
+    if (!hasValidDestination) {
+      setRates([]);
+      setError(null);
+      onChange(null);
+      return;
+    }
+
+    if (!hasValidOrigin) {
       setRates([]);
       setError(null);
       onChange(null);
@@ -47,15 +116,15 @@ export function DeliveryRateSelector({
 
     biteshipService
       .getRates({
-        origin_latitude: originLat ?? 0,
-        origin_longitude: originLng ?? 0,
-        destination_latitude: destinationLat ?? 0,
-        destination_longitude: destinationLng ?? 0,
+        origin_latitude: oLat as number,
+        origin_longitude: oLng as number,
+        destination_latitude: dLat as number,
+        destination_longitude: dLng as number,
         items,
       })
-      .then((couriers) => {
+      .then((rawCouriers) => {
         if (cancelled) return;
-        setRates(couriers);
+        setRates(buildDisplayRates(rawCouriers));
         setLoading(false);
       })
       .catch(() => {
@@ -68,7 +137,42 @@ export function DeliveryRateSelector({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationArea?.id]);
+  }, [
+    `${destinationArea?.id ?? ""}|${originLat ?? ""}|${originLng ?? ""}|${destinationLat ?? ""}|${destinationLng ?? ""}`,
+  ]);
+
+  // Guard: area dipilih tapi belum pin peta
+  if (destinationArea && !hasValidDestination) {
+    return (
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
+        style={{ borderColor: "rgba(124,74,30,0.18)", color: "#9C7D58" }}
+      >
+        <Truck className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-medium">
+          Tentukan titik lokasi pengiriman di peta untuk menghitung tarif
+        </span>
+      </div>
+    );
+  }
+
+  // Guard: koordinat toko tidak valid
+  if (destinationArea && !hasValidOrigin) {
+    return (
+      <div
+        className="flex items-start gap-2 px-4 py-3 rounded-2xl"
+        style={{ backgroundColor: "#FEF3C7", color: "#92400E", border: "1.5px solid #FDE68A" }}
+      >
+        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+        <div className="text-sm font-medium">
+          <p>Koordinat toko belum diatur.</p>
+          <p className="text-xs mt-1">
+            Buka dashboard → Pengaturan → Informasi Toko → Edit → tandai lokasi di peta.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!destinationArea) {
     return (
@@ -127,6 +231,7 @@ export function DeliveryRateSelector({
         const isSelected =
           selected?.courier_code === rate.courier_code &&
           selected?.courier_service_code === rate.courier_service_code;
+        const isInternal = rate.is_internal === true;
 
         return (
           <button
@@ -146,12 +251,16 @@ export function DeliveryRateSelector({
                 color: isSelected ? "#1C0A00" : "#6B4C2A",
               }}
             >
-              <Truck className="h-5 w-5" />
+              {isInternal ? (
+                <Store className="h-5 w-5" />
+              ) : (
+                <Truck className="h-5 w-5" />
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black" style={{ color: "#1C0A00" }}>
-                {rate.courier_name} — {rate.courier_service_name}
+                {rate.courier_name}
               </p>
               <p className="text-[11px] font-medium mt-0.5" style={{ color: "#9C7D58" }}>
                 {rate.description || rate.duration}

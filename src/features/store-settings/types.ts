@@ -32,6 +32,8 @@ export interface StoreInfo {
 export interface UpdateStoreRequest {
   name: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface StoreOnboardingRequest {

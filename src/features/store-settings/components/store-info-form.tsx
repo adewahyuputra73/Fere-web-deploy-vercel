@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   Card,
@@ -21,8 +22,32 @@ import {
   Edit3,
   X,
   Hash,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import type { StoreInfo, UpdateStoreRequest } from "../types";
+import type { PickedLocation } from "@/features/delivery/components/LocationPicker";
+
+const LocationPickerInner = dynamic(
+  () => import("@/features/delivery/components/LocationPickerInner"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="w-full flex flex-col items-center justify-center gap-3"
+        style={{
+          height: 280,
+          backgroundColor: "#F9FAFB",
+          borderRadius: 12,
+          border: "2px dashed #E5E7EB",
+        }}
+      >
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <p className="text-sm font-medium text-text-secondary">Memuat peta...</p>
+      </div>
+    ),
+  }
+);
 
 interface StoreInfoFormProps {
   store: StoreInfo;
@@ -35,14 +60,23 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(store.name);
   const [address, setAddress] = useState(store.address);
+  const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
+
+  const hasStoredCoords = store.latitude != null && store.longitude != null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSave({ name, address });
+      await onSave({
+        name,
+        address,
+        latitude: pickedLocation?.lat ?? store.latitude,
+        longitude: pickedLocation?.lng ?? store.longitude,
+      });
       showToast("Informasi toko berhasil diperbarui", "success");
       setIsEditing(false);
+      setPickedLocation(null);
     } catch {
       showToast("Gagal memperbarui informasi toko", "error");
     } finally {
@@ -53,6 +87,7 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
   const handleCancel = () => {
     setName(store.name);
     setAddress(store.address);
+    setPickedLocation(null);
     setIsEditing(false);
   };
 
@@ -100,6 +135,13 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             <DetailItem icon={MapPin} label="Alamat" value={store.address} />
+            {hasStoredCoords && (
+              <DetailItem
+                icon={Navigation}
+                label="Koordinat"
+                value={`${Number(store.latitude).toFixed(6)}, ${Number(store.longitude).toFixed(6)}`}
+              />
+            )}
             {store.owner && (
               <>
                 <DetailItem icon={User} label="Pemilik" value={store.owner.full_name} />
@@ -108,6 +150,15 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
             )}
             <DetailItem icon={Hash} label="Slug" value={store.slug} />
           </div>
+
+          {!hasStoredCoords && (
+            <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-warning-light border border-warning/20">
+              <Navigation className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <p className="text-xs text-text-secondary">
+                Koordinat toko belum diatur. Klik <strong>Edit</strong> lalu tandai lokasi di peta agar tarif pengiriman dapat dihitung otomatis.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -118,7 +169,7 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base">Edit Informasi Toko</CardTitle>
-          <CardDescription>Perbarui nama dan alamat toko Anda</CardDescription>
+          <CardDescription>Perbarui nama, alamat, dan lokasi toko Anda</CardDescription>
         </div>
         <Button variant="ghost" size="icon" onClick={handleCancel}>
           <X className="h-4 w-4" />
@@ -140,6 +191,73 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
             placeholder="Masukkan alamat toko"
             required
           />
+
+          {/* Location picker */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-text-primary">
+                Lokasi di Peta
+              </label>
+              {pickedLocation && (
+                <button
+                  type="button"
+                  onClick={() => setPickedLocation(null)}
+                  className="text-xs font-semibold text-error hover:text-error/80 flex items-center gap-1"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Hapus pilihan
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-text-secondary -mt-2">
+              Klik peta atau seret pin untuk menentukan koordinat toko. Digunakan untuk menghitung tarif pengiriman.
+            </p>
+
+            <LocationPickerInner
+              initialLat={store.latitude ?? undefined}
+              initialLng={store.longitude ?? undefined}
+              onPick={setPickedLocation}
+            />
+
+            {/* Result display */}
+            {pickedLocation ? (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-primary-light border border-primary/20">
+                <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-primary">Lokasi baru dipilih</p>
+                  {pickedLocation.address && (
+                    <p className="text-xs text-text-secondary mt-0.5 leading-relaxed line-clamp-2">
+                      {pickedLocation.address}
+                    </p>
+                  )}
+                  <p className="text-xs text-text-secondary tabular-nums mt-0.5">
+                    {pickedLocation.lat.toFixed(6)}, {pickedLocation.lng.toFixed(6)}
+                  </p>
+                </div>
+              </div>
+            ) : hasStoredCoords ? (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-success-light border border-success/20">
+                <Navigation className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-success">Koordinat tersimpan</p>
+                  <p className="text-xs text-text-secondary tabular-nums mt-0.5">
+                    {Number(store.latitude).toFixed(6)}, {Number(store.longitude).toFixed(6)}
+                  </p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Klik peta untuk mengubah koordinat
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-warning-light border border-warning/20">
+                <Navigation className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-xs text-text-secondary">
+                  Belum ada koordinat. Klik peta di atas untuk menentukan lokasi toko.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={handleCancel}>

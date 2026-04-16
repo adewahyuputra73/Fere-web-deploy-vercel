@@ -1,12 +1,9 @@
 /**
  * Biteship delivery service.
- * Semua endpoint real API via /api/pub/biteship/* → pub proxy → BE → Biteship,
- * kecuali getRates yang sementara menggunakan mock karena endpoint belum tersedia di BE.
- *
- * TODO: Aktifkan getRates real API ketika BE sudah menyediakan:
- *   POST /api/pub/biteship/rates/courier
+ * Semua endpoint real API via /api/pub/biteship/* → pub proxy → BE → Biteship.
  */
 import pubClient from "@/lib/api/pub-client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   BiteshipArea,
   BiteshipCourier,
@@ -16,73 +13,6 @@ import type {
   BiteshipCancelReason,
 } from "../types";
 
-// ── Mock courier rates (sementara) ───────────────────────────────────────────
-
-// Simulasi harga dari GoSend & GrabExpress — pilih yang tertinggi untuk Kurir Online.
-// Kurir Internal selalu 1.000 lebih murah dari harga online tertinggi.
-const MOCK_ONLINE_CANDIDATES = [15000, 18000]; // GoSend, GrabExpress
-const MOCK_ONLINE_PRICE = Math.max(...MOCK_ONLINE_CANDIDATES); // 18.000
-const MOCK_INTERNAL_PRICE = MOCK_ONLINE_PRICE - 1000;          // 17.000
-
-function buildMockCouriers(): BiteshipCourier[] {
-  const base = {
-    shipping_fee_discount: 0,
-    shipping_fee_surcharge: 0,
-    insurance_fee: 0,
-    cash_on_delivery_fee: 0,
-    currency: "IDR",
-    tax_lines: [] as unknown[],
-  };
-  return [
-    {
-      ...base,
-      courier_code: "online",
-      courier_name: "Kurir Online",
-      courier_service_code: "instant",
-      courier_service_name: "GoSend / GrabExpress",
-      company: "Online",
-      description: "GoSend, GrabExpress, atau kurir online lainnya",
-      duration: "1-3 jam",
-      shipment_duration_range: "1-3",
-      shipment_duration_unit: "hours",
-      service_type: "instant",
-      shipping_type: "domestic",
-      type: "instant",
-      price: MOCK_ONLINE_PRICE,
-      shipping_fee: MOCK_ONLINE_PRICE,
-      available_for_insurance: false,
-      available_for_cash_on_delivery: false,
-      available_for_proof_of_delivery: true,
-      available_for_instant_waybill_id: true,
-      available_collection_method: ["pickup"],
-    },
-    {
-      ...base,
-      courier_code: "internal",
-      courier_name: "Kurir Toko",
-      courier_service_code: "internal",
-      courier_service_name: "Antar Sendiri",
-      company: "Internal",
-      description: "Diantar langsung oleh kurir toko kami",
-      duration: "Sesuai jadwal",
-      shipment_duration_range: "1",
-      shipment_duration_unit: "days",
-      service_type: "regular",
-      shipping_type: "domestic",
-      type: "regular",
-      price: MOCK_INTERNAL_PRICE,
-      shipping_fee: MOCK_INTERNAL_PRICE,
-      available_for_insurance: false,
-      available_for_cash_on_delivery: true,
-      available_for_proof_of_delivery: false,
-      available_for_instant_waybill_id: false,
-      available_collection_method: ["pickup"],
-    },
-  ];
-}
-
-// ── Service ──────────────────────────────────────────────────────────────────
-
 export const biteshipService = {
   /**
    * Cari area berdasarkan kata kunci (nama kota/kecamatan/kelurahan).
@@ -90,7 +20,7 @@ export const biteshipService = {
   async searchAreas(keyword: string): Promise<BiteshipArea[]> {
     if (!keyword || keyword.trim().length < 3) return [];
     try {
-      const res = await pubClient.get<any>("/biteship/areas", {
+      const res = await pubClient.get<any>(ENDPOINTS.BITESHIP.AREAS, {
         params: { keyword: keyword.trim() },
       });
       const payload = res.data?.data ?? res.data;
@@ -103,24 +33,25 @@ export const biteshipService = {
   },
 
   /**
-   * Ambil tarif pengiriman — MOCK sementara, BE belum menyediakan endpoint.
-   *
-   * TODO: Ganti dengan real API saat BE siap:
-   * async getRates(data: BiteshipRateRequest): Promise<BiteshipCourier[]> {
-   *   try {
-   *     const res = await pubClient.post<any>("/biteship/rates/courier", data);
-   *     const payload = res.data?.data ?? res.data;
-   *     const pricing: BiteshipCourier[] = payload?.pricing ?? [];
-   *     return Array.isArray(pricing) ? pricing : [];
-   *   } catch (err) {
-   *     console.error("[biteshipService] getRates error:", err);
-   *     return [];
-   *   }
-   * }
+   * Ambil tarif pengiriman dari Biteship via BE proxy.
+   * POST /biteship/rates/courier
+   * BE yang handle pilihan courier list, FE cukup kirim koordinat + items.
    */
-  async getRates(_data: BiteshipRateRequest): Promise<BiteshipCourier[]> {
-    await new Promise((r) => setTimeout(r, 700));
-    return buildMockCouriers();
+  async getRates(data: BiteshipRateRequest): Promise<BiteshipCourier[]> {
+    try {
+      console.log("[biteshipService] getRates request:", data);
+      const res = await pubClient.post<any>(ENDPOINTS.BITESHIP.RATES, data);
+      const payload = res.data?.data ?? res.data;
+      const pricing: BiteshipCourier[] = payload?.pricing ?? [];
+      return Array.isArray(pricing) ? pricing : [];
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const body = err?.response?.data;
+      console.error(
+        `[biteshipService] getRates error | status=${status} | body=${JSON.stringify(body)} | request=${JSON.stringify(data)}`
+      );
+      return [];
+    }
   },
 
   /**
@@ -136,7 +67,7 @@ export const biteshipService = {
    */
   async getOrder(biteshipOrderId: string): Promise<BiteshipOrderDetail | null> {
     try {
-      const res = await pubClient.get<any>(`/biteship/orders/${biteshipOrderId}`);
+      const res = await pubClient.get<any>(ENDPOINTS.BITESHIP.ORDER_DETAIL(biteshipOrderId));
       return res.data?.data ?? res.data ?? null;
     } catch {
       return null;

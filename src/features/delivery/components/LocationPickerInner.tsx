@@ -7,7 +7,12 @@ import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 export interface PickedLocation {
   lat: number;
   lng: number;
-  address?: string; // reverse geocode result
+  address?: string; // reverse geocode result (display_name)
+  district?: string; // kecamatan
+  village?: string; // kelurahan / desa
+  city?: string; // kota / kabupaten
+  province?: string; // provinsi
+  postalCode?: string;
 }
 
 interface Props {
@@ -16,25 +21,48 @@ interface Props {
   onPick: (loc: PickedLocation) => void;
 }
 
+// Reverse geocode via Nominatim (OpenStreetMap) — kembalikan structured address
+async function reverseGeocode(
+  lat: number,
+  lng: number
+): Promise<Omit<PickedLocation, "lat" | "lng">> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id&addressdetails=1`,
+      { headers: { "Accept-Language": "id" } }
+    );
+    const json = await res.json();
+    const a = json.address ?? {};
+    // Nominatim di Indonesia: kecamatan biasanya di suburb / city_district / county / municipality
+    const district =
+      a.city_district ||
+      a.suburb ||
+      a.municipality ||
+      a.county ||
+      a.state_district ||
+      "";
+    const village = a.village || a.hamlet || a.neighbourhood || a.quarter || "";
+    const city = a.city || a.town || a.regency || "";
+    const province = a.state || "";
+    const postalCode = a.postcode || "";
+    return {
+      address: json.display_name ?? "",
+      district,
+      village,
+      city,
+      province,
+      postalCode,
+    };
+  } catch {
+    return { address: "" };
+  }
+}
+
 export default function LocationPickerInner({ initialLat, initialLng, onPick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(false);
-
-  // Reverse geocode via Nominatim (OpenStreetMap)
-  async function reverseGeocode(lat: number, lng: number): Promise<string> {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id`,
-        { headers: { "Accept-Language": "id" } }
-      );
-      const json = await res.json();
-      return json.display_name ?? "";
-    } catch {
-      return "";
-    }
-  }
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -107,9 +135,9 @@ export default function LocationPickerInner({ initialLat, initialLng, onPick }: 
         marker.on("dragend", async () => {
           const pos = marker.getLatLng();
           setLoadingAddress(true);
-          const address = await reverseGeocode(pos.lat, pos.lng);
+          const info = await reverseGeocode(pos.lat, pos.lng);
           setLoadingAddress(false);
-          onPick({ lat: pos.lat, lng: pos.lng, address });
+          onPick({ lat: pos.lat, lng: pos.lng, ...info });
         });
       }
 
@@ -146,16 +174,16 @@ export default function LocationPickerInner({ initialLat, initialLng, onPick }: 
           marker.on("dragend", async () => {
             const pos = marker.getLatLng();
             setLoadingAddress(true);
-            const address = await reverseGeocode(pos.lat, pos.lng);
+            const info = await reverseGeocode(pos.lat, pos.lng);
             setLoadingAddress(false);
-            onPick({ lat: pos.lat, lng: pos.lng, address });
+            onPick({ lat: pos.lat, lng: pos.lng, ...info });
           });
         }
 
         setLoadingAddress(true);
-        const address = await reverseGeocode(lat, lng);
+        const info = await reverseGeocode(lat, lng);
         setLoadingAddress(false);
-        onPick({ lat, lng, address });
+        onPick({ lat, lng, ...info });
       });
 
       // Jika browser support geolocation & belum ada initial, zoom ke lokasi user

@@ -130,8 +130,6 @@ async function handle(
   console.log(`[pub-proxy] ${method} ${endpoint}`, body ? `body: ${body}` : "");
 
   const beRes = await fetch(beUrl.toString(), { method, headers, body });
-  console.log(`[pub-proxy] BE responded: ${beRes.status}`);
-
   // Helper: parse JSON safely, fallback ke text
   async function parseResponse(res: Response) {
     const text = await res.text();
@@ -142,6 +140,9 @@ async function handle(
       return { status: "error", message: `BE error ${res.status}`, detail: text.slice(0, 200) };
     }
   }
+
+  const beJson = await parseResponse(beRes);
+  console.log(`[pub-proxy] BE responded: ${beRes.status}`, beRes.status >= 400 ? JSON.stringify(beJson).slice(0, 500) : "");
 
   // Jika token expired/invalid → clear cache, retry sekali
   if (beRes.status === 401 || beRes.status === 403) {
@@ -162,8 +163,7 @@ async function handle(
     return NextResponse.json(retryJson, { status: retryRes.status });
   }
 
-  const json = await parseResponse(beRes);
-  return NextResponse.json(json, { status: beRes.status });
+  return NextResponse.json(beJson, { status: beRes.status });
 }
 
 // ── Export HTTP methods ──

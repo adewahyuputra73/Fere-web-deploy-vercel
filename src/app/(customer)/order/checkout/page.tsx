@@ -261,7 +261,8 @@ export default function CheckoutPage() {
             const orderId = order?.id ?? "";
 
             // Untuk delivery: buat Biteship order secara terpisah setelah checkout sukses
-            if (fulfillmentType === "delivery" && destinationArea && selectedRate && storeInfo && orderId) {
+            // Kurir Internal (is_internal=true) tidak membuat Biteship order — diantar langsung toko
+            if (fulfillmentType === "delivery" && destinationArea && selectedRate && storeInfo && orderId && !selectedRate.is_internal) {
                 try {
                     const biteshipOrder = await biteshipService.createOrder({
                         origin_contact_name: storeInfo.name,
@@ -328,7 +329,7 @@ export default function CheckoutPage() {
             router.push(`/order/confirmation?${confirmParams.toString()}`);
         } catch (err: any) {
             const status = err?.response?.status;
-            const beMsg = err?.response?.data?.message ?? err?.response?.data?.error;
+            const beMsg = err?.response?.data?.error ?? err?.response?.data?.message;
             const msg = status === 403
                 ? "Fitur pemesanan belum aktif. Silakan hubungi pengelola."
                 : beMsg ?? err?.message ?? "Gagal membuat pesanan";
@@ -652,21 +653,26 @@ export default function CheckoutPage() {
                                             if (loc.address) {
                                                 setRecipientAddress(loc.address);
                                             }
-                                            // Auto-search kecamatan dari address
-                                            if (loc.address && !destinationArea) {
-                                                // Extract kecamatan from address (biasanya ada di bagian reverse geocode)
-                                                const parts = loc.address.split(",").map((s: string) => s.trim());
-                                                // Coba search dengan part ke-3 atau ke-2 (biasanya kecamatan)
-                                                const searchTerm = parts[2] || parts[1] || parts[0];
-                                                if (searchTerm && searchTerm.length >= 3) {
-                                                    biteshipService.searchAreas(searchTerm).then((areas) => {
-                                                        if (areas.length > 0) {
-                                                            setDestinationArea(areas[0]);
-                                                            setSelectedRate(null);
-                                                        }
-                                                    }).catch(() => {});
+                                            // Auto-search kecamatan via structured address (lebih reliable
+                                            // dari parsing display_name). Prioritas: district → village → city.
+                                            const candidates = [loc.district, loc.village, loc.city]
+                                                .filter((s): s is string => Boolean(s && s.length >= 3));
+                                            if (candidates.length === 0) return;
+
+                                            (async () => {
+                                                for (const term of candidates) {
+                                                    // Gabungkan dengan city agar hasil pencarian lebih tepat
+                                                    const keyword = loc.city && term !== loc.city
+                                                        ? `${term} ${loc.city}`
+                                                        : term;
+                                                    const areas = await biteshipService.searchAreas(keyword);
+                                                    if (areas.length > 0) {
+                                                        setDestinationArea(areas[0]);
+                                                        setSelectedRate(null);
+                                                        return;
+                                                    }
                                                 }
-                                            }
+                                            })().catch(() => {});
                                         }}
                                         onClear={() => setPickedLocation(null)}
                                     />

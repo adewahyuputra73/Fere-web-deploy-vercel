@@ -56,8 +56,8 @@ export default function SettingsPage() {
   }, [updateStoreInfo]);
 
   const handleSaveStoreInfo = async (data: UpdateStoreRequest) => {
-    await storeSettingsService.update(data);
-    updateStoreInfo(data);
+    const updated = await storeSettingsService.update(data);
+    updateStoreInfo(updated);
   };
 
   const general       = useSettingsStore((s) => s.general);

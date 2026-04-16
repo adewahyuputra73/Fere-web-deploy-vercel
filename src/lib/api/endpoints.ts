@@ -158,7 +158,7 @@ export const ENDPOINTS = {
   // Biteship Delivery
   BITESHIP: {
     AREAS: "/biteship/areas",
-    RATES: "/biteship/rates/couriers",
+    RATES: "/biteship/rates/courier",
     ORDERS: "/biteship/orders",
     ORDER_DETAIL: (id: string) => `/biteship/orders/${id}`,
     TRACKING: (waybillId: string) => `/biteship/trackings/${waybillId}`,

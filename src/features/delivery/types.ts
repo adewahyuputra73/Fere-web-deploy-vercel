@@ -52,6 +52,8 @@ export interface BiteshipCourier {
   available_for_instant_waybill_id: boolean;
   available_collection_method: string[];
   tax_lines: unknown[];
+  /** true = kurir internal toko, tidak membuat Biteship order */
+  is_internal?: boolean;
 }
 
 export interface BiteshipRatesResponse {
