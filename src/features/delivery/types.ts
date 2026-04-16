@@ -148,6 +148,7 @@ export interface BiteshipTrackingResponse {
   waybill_id: string | null;
   order_id: string;
   status: BiteshipOrderStatus;
+  price?: number;
   link: string | null;
   courier: {
     company: string;
