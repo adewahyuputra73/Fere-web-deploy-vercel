@@ -187,8 +187,13 @@ export default function CheckoutPage() {
     const total = getTotal(taxRate, serviceRate);
 
     useEffect(() => {
-        if (items.length === 0) router.push("/order");
-    }, [items.length, router]);
+        // Jangan redirect kalau sedang/baru submit — cart akan kosong setelah
+        // clearCart() dipanggil, dan kita perlu lanjut ke /order/confirmation
+        // tanpa diintervensi guard ini (race condition: dine-in/pickup nggak
+        // punya await panjang seperti Biteship, jadi useEffect ini balap
+        // duluan push ke confirmation).
+        if (items.length === 0 && !isSubmitting) router.push("/order");
+    }, [items.length, router, isSubmitting]);
 
     // Reset pre-order state when switching to delivery
     useEffect(() => {
@@ -326,6 +331,7 @@ export default function CheckoutPage() {
                 storeName: storeInfo?.name ?? "",
                 ...(storeWaPhone ? { storePhone: storeWaPhone } : {}),
                 ...(fulfillmentType === "delivery" ? { hasDelivery: "1" } : {}),
+                ...(isPreOrder ? { preOrder: "1" } : {}),
             });
             router.push(`/order/confirmation?${confirmParams.toString()}`);
         } catch (err: any) {
