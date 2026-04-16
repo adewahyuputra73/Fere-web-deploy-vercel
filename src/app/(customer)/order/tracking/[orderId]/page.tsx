@@ -334,7 +334,7 @@ export default function TrackingPage() {
             <DriverInfoCard
               driver={{
                 name: driverName ?? trackingData?.courier?.name ?? "",
-                phone: driverPhone ?? trackingData?.courier?.phone ?? null,
+                phone: driverPhone ?? trackingData?.courier?.phone ?? "",
               }}
               courierCompany={trackingData?.courier?.company}
             />

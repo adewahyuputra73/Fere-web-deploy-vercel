@@ -156,6 +156,7 @@ export interface BiteshipTrackingResponse {
     phone: string | null;
     driver_name: string | null;
     driver_phone: string | null;
+    link: string | null;
   };
   origin: {
     contact_name: string;
