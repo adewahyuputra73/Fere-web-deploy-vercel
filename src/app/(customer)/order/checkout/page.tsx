@@ -322,6 +322,7 @@ export default function CheckoutPage() {
                 orderNumber,
                 name: customerName,
                 orderId,
+                type: fulfillmentType,
                 storeName: storeInfo?.name ?? "",
                 ...(storeWaPhone ? { storePhone: storeWaPhone } : {}),
                 ...(fulfillmentType === "delivery" ? { hasDelivery: "1" } : {}),
