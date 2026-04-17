@@ -1,7 +1,7 @@
 import apiClient from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import type { ApiResponse } from "@/types";
-import type { StoreInfo, UpdateStoreRequest, StoreOnboardingRequest } from "../types";
+import type { StoreInfo, UpdateStoreRequest, StoreOnboardingRequest, StoreFees } from "../types";
 
 export const storeSettingsService = {
   async my(): Promise<StoreInfo> {
@@ -22,6 +22,21 @@ export const storeSettingsService = {
   async onboarding(data: StoreOnboardingRequest): Promise<StoreInfo> {
     const response = await apiClient.post<ApiResponse<StoreInfo>>(
       ENDPOINTS.STORES.ONBOARDING,
+      data
+    );
+    return response.data.data;
+  },
+
+  async getFees(): Promise<StoreFees> {
+    const response = await apiClient.get<ApiResponse<StoreFees>>(
+      ENDPOINTS.STORES.FEES
+    );
+    return response.data.data;
+  },
+
+  async updateFees(data: StoreFees): Promise<StoreFees> {
+    const response = await apiClient.put<ApiResponse<StoreFees>>(
+      ENDPOINTS.STORES.FEES,
       data
     );
     return response.data.data;

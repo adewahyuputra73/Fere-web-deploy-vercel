@@ -39,9 +39,18 @@ function mapStatus(raw: any): OrderStatus {
   if (ful === "CANCELLED" || pay === "CANCELLED") return "failed";
   if (ful === "DELIVERED") return "shipped";
   if (ful === "READY" || ful === "PROCESSING") return "ready";
-  if (pay === "UNPAID") return "unpaid";
-  if (ful === "PENDING") return "unpaid";
+  if (ful === "SCHEDULED") return "ready";
+  if (pay === "UNPAID" || ful === "PENDING") return "unpaid";
   return "unpaid";
+}
+
+function mapFulfillmentType(orderType: string): Order["fulfillmentType"] {
+  const t = orderType.toLowerCase();
+  if (t === "dine_in") return "dine_in";
+  if (t === "pickup") return "pickup";
+  if (t === "takeaway") return "takeaway";
+  if (t === "delivery") return "delivery";
+  return t as Order["fulfillmentType"];
 }
 
 function mapApiOrder(raw: any): Order {
@@ -55,7 +64,7 @@ function mapApiOrder(raw: any): Order {
     orderNumber: raw.order_number ?? raw.id,
     customerName: raw.customer?.name ?? raw.customer_name ?? "Tamu",
     customerPhone: raw.customer?.phone ?? raw.customer_phone ?? "",
-    fulfillmentType: ((raw.order_type ?? "dine_in") as string).toLowerCase() as Order["fulfillmentType"],
+    fulfillmentType: mapFulfillmentType(raw.order_type ?? "dine_in"),
     orderDate: raw.createdAt ?? raw.created_at ?? "",
     completedAt: raw.updatedAt ?? raw.updated_at ?? undefined,
     totalPrice: Number(raw.total_amount ?? raw.total ?? 0),
@@ -64,6 +73,8 @@ function mapApiOrder(raw: any): Order {
     tax: Number(raw.tax ?? 0),
     serviceFee: Number(raw.service_fee ?? 0),
     shippingFee: Number(raw.delivery_fee ?? raw.shipping_fee ?? 0),
+    additional_fee: Number(raw.additional_fee ?? 0),
+    rounding: Number(raw.rounding ?? 0),
     paymentMethod,
     status: mapStatus(raw),
     items: (raw.items ?? []).map((item: any) => ({
@@ -77,6 +88,12 @@ function mapApiOrder(raw: any): Order {
     })),
     cashierName: raw.kasirDetail?.name ?? raw.cashier_name ?? "",
     fulfillmentStatus: (raw.fulfillment_status ?? "").toUpperCase(),
+    is_preorder: raw.is_preorder ?? false,
+    scheduled_at: raw.scheduled_at ?? null,
+    invoiceNumber: raw.invoice?.invoice_number ?? undefined,
+    invoiceUrl: raw.xendit_invoice_url ?? undefined,
+    platform: raw.platform ?? undefined,
+    source: raw.source ?? undefined,
   };
 }
 
@@ -120,8 +137,8 @@ export default function TransactionsPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const raw = await orderService.list({ limit: 100 });
-      const mapped = (Array.isArray(raw) ? raw : []).map(mapApiOrder);
+      const result = await orderService.list({ limit: 100 });
+      const mapped = result.data.map(mapApiOrder);
       setOrders(mapped);
     } catch {
       showToast("Gagal memuat transaksi", "error");
@@ -136,8 +153,8 @@ export default function TransactionsPage() {
     try {
       await orderService.updateStatus(orderId, { status: newStatus as FulfillmentStatus });
       // Re-fetch silently (no loading spinner) and sync selectedOrder
-      const raw = await orderService.list({ limit: 100 });
-      const mapped = (Array.isArray(raw) ? raw : []).map(mapApiOrder);
+      const result = await orderService.list({ limit: 100 });
+      const mapped = result.data.map(mapApiOrder);
       setOrders(mapped);
       setSelectedOrder((prev) => {
         if (!prev || String(prev.id) !== String(orderId)) return prev;

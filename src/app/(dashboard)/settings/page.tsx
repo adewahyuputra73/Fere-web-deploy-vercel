@@ -11,12 +11,23 @@ import {
 } from "@/features/store-settings/components";
 import { useStoreSettingsStore } from "@/stores/storeSettingsStore";
 import { storeSettingsService } from "@/features/store-settings/services/store-settings-service";
-import type { UpdateStoreRequest } from "@/features/store-settings";
+import type { UpdateStoreRequest, StoreFees } from "@/features/store-settings";
 import {
   GeneralSettingsForm,
   PrinterSettingsForm,
 } from "@/features/settings/components";
 import { useSettingsStore } from "@/stores/settingsStore";
+
+const DEFAULT_FEES: StoreFees = {
+  tax_is_active: false,
+  service_fee_is_active: false,
+  service_fee_type: "percentage",
+  service_fee_percentage: 0,
+  additional_fee_is_active: false,
+  additional_fee_name: "",
+  additional_fee_type: "nominal",
+  additional_fee_nominal: 0,
+};
 
 const SECTIONS = [
   { id: "store-info",      label: "Informasi Toko",  icon: Store },
@@ -39,13 +50,12 @@ function SectionHeader({ id, icon: Icon, label }: { id: string; icon: React.Elem
 
 export default function SettingsPage() {
   const [loadingStore, setLoadingStore] = useState(true);
+  const [storeFees, setStoreFees] = useState<StoreFees>(DEFAULT_FEES);
   const storeInfo       = useStoreSettingsStore((s) => s.storeInfo);
   const operatingHours  = useStoreSettingsStore((s) => s.operatingHours);
-  const taxSettings     = useStoreSettingsStore((s) => s.taxSettings);
   const paymentMethods  = useStoreSettingsStore((s) => s.paymentMethods);
   const updateStoreInfo        = useStoreSettingsStore((s) => s.updateStoreInfo);
   const updateOperatingHours   = useStoreSettingsStore((s) => s.updateOperatingHours);
-  const updateTaxSettings      = useStoreSettingsStore((s) => s.updateTaxSettings);
   const updatePaymentMethods   = useStoreSettingsStore((s) => s.updatePaymentMethods);
 
   useEffect(() => {
@@ -53,11 +63,20 @@ export default function SettingsPage() {
       .then((data) => updateStoreInfo(data))
       .catch(() => {})
       .finally(() => setLoadingStore(false));
+
+    storeSettingsService.getFees()
+      .then((data) => setStoreFees(data))
+      .catch(() => {});
   }, [updateStoreInfo]);
 
   const handleSaveStoreInfo = async (data: UpdateStoreRequest) => {
     const updated = await storeSettingsService.update(data);
     updateStoreInfo(updated);
+  };
+
+  const handleSaveFees = async (data: StoreFees) => {
+    const updated = await storeSettingsService.updateFees(data);
+    setStoreFees(updated);
   };
 
   const general       = useSettingsStore((s) => s.general);
@@ -96,8 +115,10 @@ export default function SettingsPage() {
               <div className="flex items-center justify-center h-32">
                 <div className="h-7 w-7 rounded-full border-4 border-primary border-t-transparent animate-spin" />
               </div>
-            ) : (
+            ) : storeInfo ? (
               <StoreInfoForm store={storeInfo} onSave={handleSaveStoreInfo} />
+            ) : (
+              <p className="text-sm text-text-secondary">Gagal memuat informasi toko. Silakan refresh halaman.</p>
             )}
           </div>
         </section>
@@ -113,8 +134,8 @@ export default function SettingsPage() {
           <SectionHeader id="tax-receipt" icon={Receipt} label="Pajak & Struk" />
           <div className="max-w-3xl">
             <TaxReceiptSettingsForm
-              taxSettings={taxSettings}
-              onSaveTax={updateTaxSettings}
+              storeFees={storeFees}
+              onSaveFees={handleSaveFees}
             />
           </div>
         </section>

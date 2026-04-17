@@ -86,14 +86,14 @@ export default function DashboardPage() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const [summaryData, productsData, ordersData] = await Promise.all([
+        const [summaryData, productsData, ordersResult] = await Promise.all([
           dashboardService.todaySummary(),
           dashboardService.topProducts({ limit: 5 }),
           orderService.list({ limit: 5 }),
         ]);
         setSummary(summaryData);
         setTopProducts(productsData);
-        setRecentOrders(ordersData);
+        setRecentOrders(ordersResult.data);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Gagal memuat data dashboard";
         setFetchError(message);

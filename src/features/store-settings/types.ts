@@ -42,6 +42,19 @@ export interface StoreOnboardingRequest {
   phone: string;
 }
 
+export type FeeType = "percentage" | "nominal";
+
+export interface StoreFees {
+  tax_is_active: boolean;
+  service_fee_is_active: boolean;
+  service_fee_type: FeeType;
+  service_fee_percentage: number;
+  additional_fee_is_active: boolean;
+  additional_fee_name: string;
+  additional_fee_type: FeeType;
+  additional_fee_nominal: number;
+}
+
 export interface OperatingHours {
   day: DayOfWeek;
   is_open: boolean;

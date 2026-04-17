@@ -9,6 +9,7 @@ import type { Product } from "@/features/products/types";
 import type { StoreInfo } from "@/features/store-settings/types";
 import type { Table, Area } from "@/features/tables/types";
 import type { CheckoutRequest } from "@/features/orders/types";
+import type { CreatePreorderRequest, Preorder, PreorderOrderType } from "@/features/preorders/types";
 
 export const pubProductService = {
   async list(): Promise<Product[]> {
@@ -78,6 +79,34 @@ export const pubOrderService = {
 
   async detail(id: string): Promise<any> {
     const response = await pubClient.get<any>(`/orders/${id}`);
+    return response.data.data;
+  },
+};
+
+export const pubPreorderService = {
+  async slots(
+    storeId: string,
+    date: string,
+    orderType: PreorderOrderType,
+    tableId?: string
+  ): Promise<string[]> {
+    try {
+      const params: Record<string, string> = { store_id: storeId, date, order_type: orderType };
+      if (tableId) params.table_id = tableId;
+      const qs = new URLSearchParams(params).toString();
+      const response = await pubClient.get<any>(`/preorders/slots?${qs}`);
+      const data = response.data.data;
+      if (!Array.isArray(data)) return [];
+      if (data.length === 0) return [];
+      if (typeof data[0] === "string") return data as string[];
+      return (data as { time: string }[]).map((s) => s.time);
+    } catch {
+      return [];
+    }
+  },
+
+  async create(data: CreatePreorderRequest): Promise<Preorder> {
+    const response = await pubClient.post<any>("/preorders", data);
     return response.data.data;
   },
 };

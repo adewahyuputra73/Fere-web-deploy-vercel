@@ -6,7 +6,7 @@ import { Card, CardContent, Button, Badge } from "@/components/ui";
 import { useToast } from "@/components/ui";
 import { Plus, Edit, Trash2, ToggleLeft, ToggleRight, MapPin, Phone, Store, Loader2 } from "lucide-react";
 import { outletService, OutletModal, DeleteConfirm } from "@/features/outlets";
-import type { Outlet } from "@/features/outlets";
+import type { Outlet, CreateOutletRequest } from "@/features/outlets";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -34,12 +34,12 @@ export default function OutletsPage() {
     loadOutlets();
   }, [loadOutlets]);
 
-  const handleCreate = async (data: { name: string; address: string; phone_number?: string }) => {
+  const handleCreate = async (data: CreateOutletRequest) => {
     await outletService.create(data);
     await loadOutlets();
   };
 
-  const handleUpdate = async (data: { name: string; address: string; phone_number?: string }) => {
+  const handleUpdate = async (data: CreateOutletRequest) => {
     if (!modalOutlet || modalOutlet === "new") return;
     await outletService.update(modalOutlet.id, data);
     await loadOutlets();

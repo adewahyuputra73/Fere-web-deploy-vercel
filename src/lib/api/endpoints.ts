@@ -72,10 +72,19 @@ export const ENDPOINTS = {
     DELETE: (id: string | number) => `/outlets/${id}`,
   },
 
+  // Pre-orders
+  PREORDERS: {
+    SLOTS: "/preorders/slots",
+    LIST: "/preorders",
+    CREATE: "/preorders",
+    CREATE_POS: "/preorders/pos",
+  },
+
   // Stores
   STORES: {
     ONBOARDING: "/stores/onboarding",
     MY: "/stores/my",
+    FEES: "/stores/my/fees",
   },
 
   // Orders

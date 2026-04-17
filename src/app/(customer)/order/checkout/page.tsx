@@ -11,7 +11,7 @@ import {
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
 import { formatCurrency } from "@/lib/utils/format";
 import { useToast } from "@/components/ui";
-import { pubOrderService, pubStoreService } from "@/features/customer-order/services/pub-services";
+import { pubOrderService, pubStoreService, pubPreorderService } from "@/features/customer-order/services/pub-services";
 import { TableLayoutPicker } from "@/features/customer-order/components/TableLayoutPicker";
 import { DeliveryAddressSearch } from "@/features/delivery/components/DeliveryAddressSearch";
 import { DeliveryRateSelector } from "@/features/delivery/components/DeliveryRateSelector";
@@ -174,6 +174,8 @@ export default function CheckoutPage() {
     const [isPreOrder, setIsPreOrder] = useState(false);
     const [scheduledDate, setScheduledDate] = useState(todayStr());
     const [scheduledTime, setScheduledTime] = useState("");
+    const [availableSlots, setAvailableSlots] = useState<string[] | null>(null);
+    const [loadingSlots, setLoadingSlots] = useState(false);
 
     // Delivery fields (only for "delivery" fulfillment)
     const [destinationArea, setDestinationArea] = useState<BiteshipArea | null>(null);
@@ -207,6 +209,23 @@ export default function CheckoutPage() {
         }
     }, [fulfillmentType]);
 
+    // Fetch available slots dari API setiap kali pre-order aktif dan date/table berubah
+    useEffect(() => {
+        if (!isPreOrder || !storeInfo?.id || !scheduledDate) {
+            setAvailableSlots(null);
+            return;
+        }
+        const orderType = FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType)!.orderType;
+        setLoadingSlots(true);
+        setScheduledTime("");
+        pubPreorderService
+            .slots(storeInfo.id, scheduledDate, orderType, selectedTable?.id)
+            .then((slots) => setAvailableSlots(slots.length > 0 ? slots : null))
+            .catch(() => setAvailableSlots(null))
+            .finally(() => setLoadingSlots(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPreOrder, scheduledDate, fulfillmentType, selectedTable?.id, storeInfo?.id]);
+
     // If switching to non-dine_in, clear the stored table
     useEffect(() => {
         if (fulfillmentType !== "dine_in") setSelectedTable(null);
@@ -225,11 +244,6 @@ export default function CheckoutPage() {
         if (!canSubmit) return;
         setIsSubmitting(true);
         try {
-            const scheduled_at =
-                isPreOrder && scheduledDate && scheduledTime
-                    ? `${scheduledDate}T${scheduledTime}:00`
-                    : undefined;
-
             const orderType = FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType)!.orderType;
 
             // Format phone: gabungkan "62" + input user (tanpa leading 0)
@@ -238,26 +252,42 @@ export default function CheckoutPage() {
 
             if (!storeInfo?.id) throw new Error("Store belum termuat, coba refresh halaman");
 
-            // Untuk delivery: sertakan info alamat di notes
-            const deliveryNotes = fulfillmentType === "delivery" && destinationArea && selectedRate
-                ? `[DELIVERY] ${selectedRate.courier_name} ${selectedRate.courier_service_name} | Tujuan: ${recipientAddress.trim()}, ${destinationArea.administrative_division_level_3_name || destinationArea.name}, ${destinationArea.administrative_division_level_2_name} | Ongkir: Rp${selectedRate.price.toLocaleString("id-ID")}`
-                : "";
-            const combinedNotes = [deliveryNotes, notes.trim()].filter(Boolean).join(" | ") || undefined;
+            let order: any;
 
-            const order = await pubOrderService.checkout(storeInfo.id, {
-                order_type: orderType,
-                table_number: fulfillmentType === "dine_in" && selectedTable ? selectedTable.name : undefined,
-                name: customerName.trim(),
-                phone: phone ?? "",
-                items: items.map((item) => ({
-                    product_id: item.product.id,
-                    qty: item.quantity,
-                    note: item.notes || undefined,
-                })),
-                payments: [{ method: "CASH", amount: total }],
-                scheduled_at,
-                notes: combinedNotes,
-            });
+            if (isPreOrder && scheduledDate && scheduledTime) {
+                // Gunakan endpoint dedicated /preorders/
+                order = await pubPreorderService.create({
+                    name: customerName.trim(),
+                    phone: phone ?? "",
+                    order_type: orderType,
+                    scheduled_at: `${scheduledDate}T${scheduledTime}:00`,
+                    table_id: fulfillmentType === "dine_in" && selectedTable ? selectedTable.id : undefined,
+                    items: items.map((item) => ({
+                        product_id: item.product.id,
+                        qty: item.quantity,
+                    })),
+                });
+            } else {
+                // Order reguler (bukan pre-order)
+                const deliveryNotes = fulfillmentType === "delivery" && destinationArea && selectedRate
+                    ? `[DELIVERY] ${selectedRate.courier_name} ${selectedRate.courier_service_name} | Tujuan: ${recipientAddress.trim()}, ${destinationArea.administrative_division_level_3_name || destinationArea.name}, ${destinationArea.administrative_division_level_2_name} | Ongkir: Rp${selectedRate.price.toLocaleString("id-ID")}`
+                    : "";
+                const combinedNotes = [deliveryNotes, notes.trim()].filter(Boolean).join(" | ") || undefined;
+
+                order = await pubOrderService.checkout(storeInfo.id, {
+                    order_type: orderType,
+                    table_number: fulfillmentType === "dine_in" && selectedTable ? selectedTable.name : undefined,
+                    name: customerName.trim(),
+                    phone: phone ?? "",
+                    items: items.map((item) => ({
+                        product_id: item.product.id,
+                        qty: item.quantity,
+                        note: item.notes || undefined,
+                    })),
+                    payments: [{ method: "CASH", amount: total }],
+                    notes: combinedNotes,
+                });
+            }
 
             // Clear cart & stored table after successful order
             clearCart();
@@ -574,29 +604,36 @@ export default function CheckoutPage() {
                                                     Waktu Kedatangan
                                                 </span>
                                             </FieldLabel>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {TIME_SLOTS.map((slot) => {
-                                                    const past = isPastSlot(scheduledDate, slot);
-                                                    const active = scheduledTime === slot;
-                                                    return (
-                                                        <button
-                                                            key={slot}
-                                                            type="button"
-                                                            disabled={past}
-                                                            onClick={() => setScheduledTime(slot)}
-                                                            className="py-2.5 rounded-xl text-xs font-bold border-2 transition-all"
-                                                            style={{
-                                                                backgroundColor: active ? "#F59E0B" : past ? "#F5F5F5" : "#FFF8EE",
-                                                                borderColor: active ? "#D97706" : past ? "#E5E7EB" : "rgba(124,74,30,0.15)",
-                                                                color: active ? "#1C0A00" : past ? "#9CA3AF" : "#6B4C2A",
-                                                                cursor: past ? "not-allowed" : "pointer",
-                                                            }}
-                                                        >
-                                                            {slot}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
+                                            {loadingSlots ? (
+                                                <div className="flex items-center justify-center h-12 gap-2" style={{ color: "#9C7D58" }}>
+                                                    <div className="h-4 w-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                                                    <span className="text-xs font-medium">Memuat slot waktu...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {(availableSlots ?? TIME_SLOTS).map((slot) => {
+                                                        const past = !availableSlots && isPastSlot(scheduledDate, slot);
+                                                        const active = scheduledTime === slot;
+                                                        return (
+                                                            <button
+                                                                key={slot}
+                                                                type="button"
+                                                                disabled={past}
+                                                                onClick={() => setScheduledTime(slot)}
+                                                                className="py-2.5 rounded-xl text-xs font-bold border-2 transition-all"
+                                                                style={{
+                                                                    backgroundColor: active ? "#F59E0B" : past ? "#F5F5F5" : "#FFF8EE",
+                                                                    borderColor: active ? "#D97706" : past ? "#E5E7EB" : "rgba(124,74,30,0.15)",
+                                                                    color: active ? "#1C0A00" : past ? "#9CA3AF" : "#6B4C2A",
+                                                                    cursor: past ? "not-allowed" : "pointer",
+                                                                }}
+                                                            >
+                                                                {slot}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

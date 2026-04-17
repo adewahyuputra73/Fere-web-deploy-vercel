@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ShoppingCart, Store } from "lucide-react";
 import { useCustomerCartStore } from "@/stores/customer-cart-store";
 import { APP_NAME } from "@/lib/constants";
-import { mockStoreInfo } from "@/features/store-settings/mock-data";
 
 export function CustomerNavbar() {
     const itemCount = useCustomerCartStore((state) => state.getItemCount());
@@ -21,7 +20,7 @@ export function CustomerNavbar() {
                     </div>
                     <div>
                         <span className="text-xl font-[700] tracking-tight text-text-primary font-[family-name:var(--font-fraunces)]">
-                            {mockStoreInfo.name || APP_NAME}
+                            {APP_NAME}
                         </span>
                     </div>
                 </Link>

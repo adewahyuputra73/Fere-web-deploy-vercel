@@ -1,16 +1,21 @@
 import apiClient from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import type { ApiResponse } from "@/types";
-import type { Order, OrderSummaryCards, CheckoutRequest, PayOrderRequest, UpdateOrderStatusRequest, VoidOrderRequest, OrderListParams } from "../types";
+import type { Order, OrderListResponse, OrderSummaryCards, CheckoutRequest, PayOrderRequest, UpdateOrderStatusRequest, VoidOrderRequest, OrderListParams } from "../types";
 
 export const orderService = {
-  async list(params?: OrderListParams): Promise<Order[]> {
+  async list(params?: OrderListParams): Promise<OrderListResponse> {
     const response = await apiClient.get<ApiResponse<any>>(ENDPOINTS.ORDERS.LIST, { params });
     const payload = response.data.data;
-    // API returns { total_data, total_page, current_page, data: [] }
-    return Array.isArray(payload)
-      ? payload
-      : (payload?.data ?? payload?.orders ?? []);
+    if (Array.isArray(payload)) {
+      return { total_data: payload.length, total_page: 1, current_page: 1, data: payload };
+    }
+    return {
+      total_data: payload?.total_data ?? 0,
+      total_page: payload?.total_page ?? 1,
+      current_page: payload?.current_page ?? 1,
+      data: payload?.data ?? payload?.orders ?? [],
+    };
   },
 
   async detail(id: string | number): Promise<Order> {

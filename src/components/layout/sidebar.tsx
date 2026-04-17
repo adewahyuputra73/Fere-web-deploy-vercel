@@ -35,6 +35,7 @@ import {
   Clock,
   Shield,
   Building2,
+  CalendarClock,
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 
@@ -93,6 +94,11 @@ const navItems: NavItem[] = [
     label: "Transaksi",
     href: "/transactions",
     icon: <ShoppingCart className="h-5 w-5" />,
+  },
+  {
+    label: "Pre-Order",
+    href: "/preorders",
+    icon: <CalendarClock className="h-5 w-5" />,
   },
   // { label: "Pembayaran", href: "/payments", icon: <Wallet className="h-5 w-5" />, roles: ["owner"] }, // TODO: mock — aktifkan setelah API siap
 ];

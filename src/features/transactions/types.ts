@@ -17,9 +17,10 @@ export type PaymentMethod =
   | 'grabfood'      // GrabFood
   | 'shopeefood';   // ShopeeFood
 
-export type FulfillmentType = 
+export type FulfillmentType =
   | 'dine_in'       // Makan di Tempat
   | 'takeaway'      // Bawa Pulang
+  | 'pickup'        // Ambil Sendiri
   | 'delivery'      // Pesan Antar
   | 'gofood'        // GoFood
   | 'grabfood'      // GrabFood
@@ -63,10 +64,17 @@ export interface Order {
   address?: string;
   customerNotes?: string;
   invoiceUrl?: string;
+  invoiceNumber?: string;
   deletedAt?: string;
   deletedBy?: string;
   deleteReason?: string;
-  fulfillmentStatus?: string; // raw BE value: PROCESSING | READY | DELIVERED | COMPLETED | CANCELLED
+  fulfillmentStatus?: string;
+  is_preorder?: boolean;
+  scheduled_at?: string | null;
+  additional_fee?: number;
+  rounding?: number;
+  platform?: string;
+  source?: string;
 }
 
 // Filter Types
@@ -110,6 +118,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 export const FULFILLMENT_TYPE_LABELS: Record<FulfillmentType, string> = {
   dine_in: 'Makan di Tempat',
   takeaway: 'Bawa Pulang',
+  pickup: 'Ambil Sendiri',
   delivery: 'Pesan Antar',
   gofood: 'GoFood',
   grabfood: 'GrabFood',
