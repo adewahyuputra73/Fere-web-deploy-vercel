@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui";
 import { Search, Download, Users } from "lucide-react";
 import { CustomerFilters, Customer, CustomerDetail } from "@/features/customers/types";
-import { filterCustomers } from "@/features/customers/mock-data";
+import { filterCustomers } from "@/features/customers/utils";
 import { customerService } from "@/features/customers/services";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import { CustomerFilterBar } from "@/features/customers/components/customer-filter-bar";

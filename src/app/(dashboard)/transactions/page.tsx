@@ -12,7 +12,7 @@ import {
   OrderStatus,
   TransactionFilters,
 } from "@/features/transactions/types";
-import { filterOrders, getOrderStats } from "@/features/transactions/mock-data";
+import { filterOrders, getOrderStats } from "@/features/transactions/utils";
 import { orderService } from "@/features/orders/services/order-service";
 import type { FulfillmentStatus } from "@/features/orders/types";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";

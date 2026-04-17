@@ -13,9 +13,9 @@ import {
   Product,
 } from "../types";
 import { StatusToggle } from "./status-toggle";
-import { mockProducts } from "../mock-data";
-import { 
-  X, 
+import { productService } from "../services/product-service";
+import {
+  X,
   Plus,
   Trash2,
   AlertCircle,
@@ -67,6 +67,8 @@ export function VariantModal({
   const [productSearch, setProductSearch] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [hasLimitOptions, setHasLimitOptions] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   const isEditing = !!variant;
 
@@ -108,6 +110,25 @@ export function VariantModal({
     setShowProductPicker(false);
     setProductSearch("");
   }, [variant, isOpen]);
+
+  // Fetch products when product picker is opened
+  useEffect(() => {
+    if (!showProductPicker || allProducts.length > 0) return;
+    let cancelled = false;
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const products = await productService.list();
+        if (!cancelled) setAllProducts(products);
+      } catch {
+        // silently fail — picker will show empty
+      } finally {
+        if (!cancelled) setIsLoadingProducts(false);
+      }
+    };
+    fetchProducts();
+    return () => { cancelled = true; };
+  }, [showProductPicker, allProducts.length]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -209,7 +230,7 @@ export function VariantModal({
     }
   };
 
-  const filteredProducts = mockProducts.filter(p => 
+  const filteredProducts = allProducts.filter(p =>
     p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
     p.sku?.toLowerCase().includes(productSearch.toLowerCase())
   );
@@ -606,7 +627,15 @@ export function VariantModal({
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2">
-                {filteredProducts.map((product) => (
+                {isLoadingProducts ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="h-6 w-6 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-text-secondary">
+                    Tidak ada produk ditemukan
+                  </div>
+                ) : filteredProducts.map((product) => (
                   <button
                     key={product.id}
                     type="button"

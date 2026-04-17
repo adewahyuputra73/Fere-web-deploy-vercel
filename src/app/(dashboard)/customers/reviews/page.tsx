@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Star, MessageSquare, Settings } from "lucide-react";
 import type { Review, ReviewFilters } from "@/features/customers/types";
-import { filterReviews, getReviewStats } from "@/features/customers/mock-data";
+import { filterReviews, getReviewStats } from "@/features/customers/utils";
 import { ReviewTable } from "@/features/customers/components/review-table";
 import { customerService } from "@/features/customers/services/customer-service";
 
