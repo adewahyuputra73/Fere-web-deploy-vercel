@@ -194,7 +194,7 @@ export default function WalletPage() {
                         </td>
                         <td className="px-4 py-3 text-text-secondary max-w-[200px] truncate">{item.note ?? "-"}</td>
                         <td className={`px-4 py-3 text-right font-bold ${t.color}`}>
-                          {item.type === "OUT" ? "-" : "+"}{formatCurrency(Number(item.amount ?? 0))}
+                          {formatCurrency(Number(item.amount ?? 0))}
                         </td>
                       </tr>
                     );

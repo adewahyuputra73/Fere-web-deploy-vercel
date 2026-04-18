@@ -16,7 +16,6 @@ import {
   DollarSign,
   ShoppingCart,
   Package,
-  MoreVertical,
   Search,
   Filter,
   X,
@@ -144,9 +143,11 @@ export default function DashboardPage() {
     return recentOrders.filter((order) => {
       const shortId = (order.id ?? "").slice(0, 8).toLowerCase();
       const orderType = (order.order_type ?? "").toLowerCase();
+      const orderTypeLabel = getOrderTypeLabel(order.order_type ?? "").toLowerCase();
       const matchesSearch =
         shortId.includes(searchQuery.toLowerCase()) ||
-        orderType.includes(searchQuery.toLowerCase());
+        orderType.includes(searchQuery.toLowerCase()) ||
+        orderTypeLabel.includes(searchQuery.toLowerCase());
 
       const orderStatusNormalized = (order.fulfillment_status ?? order.payment_status ?? "").toLowerCase();
       const matchesStatus =
@@ -204,9 +205,6 @@ export default function DashboardPage() {
                 <div className={cn("p-2.5 rounded-xl", stat.bgColor)}>
                   <stat.icon className={cn("h-6 w-6", stat.color)} />
                 </div>
-                <button className="text-text-secondary hover:text-text-primary transition-colors">
-                  <MoreVertical className="h-5 w-5" />
-                </button>
               </div>
 
               <div>
