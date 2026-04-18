@@ -76,7 +76,7 @@ export const ENDPOINTS = {
   PREORDERS: {
     SLOTS: "/preorders/slots",
     LIST: "/preorders",
-    CREATE: "/preorders",
+    CREATE: "/preorders/",
     CREATE_POS: "/preorders/pos",
   },
 
@@ -85,6 +85,7 @@ export const ENDPOINTS = {
     ONBOARDING: "/stores/onboarding",
     MY: "/stores/my",
     FEES: "/stores/my/fees",
+    CREATE: "/stores/create",
   },
 
   // Orders
@@ -184,6 +185,7 @@ export const ENDPOINTS = {
   // Staff Management
   STAFF: {
     LIST: "/staff",
+    ALL: "/staff/all",
     CREATE: "/staff",
     UPDATE: (id: string | number) => `/staff/${id}`,
     DELETE: (id: string | number) => `/staff/${id}`,

@@ -36,6 +36,7 @@ function WhatsAppNotifSheet({
     storePhone,
     customerName,
     orderNumber,
+    orderId,
     notifType,
 }: {
     open: boolean;
@@ -44,13 +45,11 @@ function WhatsAppNotifSheet({
     storePhone: string;
     customerName: string;
     orderNumber: string;
+    orderId: string;
     notifType: NotifType;
 }) {
     const copy = NOTIF_COPY[notifType];
-    const template = encodeURIComponent(
-        `Halo ${storeName}, saya ${customerName} dengan pesanan #${orderNumber}. Mohon kabari saya via WhatsApp ini ${copy.message}. Terima kasih! 🙏`
-    );
-    const waUrl = `https://wa.me/${storePhone}?text=${template}`;
+    const waUrl = `https://wa.me/${storePhone}?text=${encodeURIComponent(orderNumber)}`;
 
     if (!open) return null;
 
@@ -106,9 +105,9 @@ function WhatsAppNotifSheet({
                         className="text-[10px] font-black uppercase tracking-widest block mb-2"
                         style={{ color: "#16A34A" }}
                     >
-                        Pesan yang akan dikirim ke {storeName}
+                        ID Pesanan yang akan dikirim ke {storeName}
                     </span>
-                    Halo {storeName}, saya {customerName} dengan pesanan #{orderNumber}. Mohon kabari saya via WhatsApp ini {copy.message}. Terima kasih! 🙏
+                    {orderNumber}
                 </div>
 
                 <div className="space-y-3">
@@ -504,6 +503,7 @@ function ConfirmationContent() {
                 storePhone={storePhone}
                 customerName={customerName}
                 orderNumber={orderNumber}
+                orderId={orderId}
                 notifType={isDelivery ? "delivery" : isPickup ? "pickup" : "dine_in"}
             />
         </div>

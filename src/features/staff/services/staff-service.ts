@@ -23,6 +23,18 @@ export const staffService = {
     };
   },
 
+  async listAll(): Promise<StaffListResponse> {
+    const response = await apiClient.get<{ status: string; total: number; page: number; totalPages: number; data: StaffMember[] }>(
+      ENDPOINTS.STAFF.ALL
+    );
+    return {
+      total: response.data.total,
+      page: response.data.page,
+      totalPages: response.data.totalPages,
+      data: response.data.data,
+    };
+  },
+
   async roles(): Promise<StaffRole[]> {
     const response = await apiClient.get<ApiResponse<StaffRole[]>>(
       ENDPOINTS.STAFF.ROLES

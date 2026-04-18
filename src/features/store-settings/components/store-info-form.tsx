@@ -60,6 +60,7 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(store.name);
   const [address, setAddress] = useState(store.address);
+  const [notificationPhone, setNotificationPhone] = useState(store.notification_phone ?? "");
   const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
 
   const hasStoredCoords = store.latitude != null && store.longitude != null;
@@ -68,12 +69,17 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const cleanPhone = notificationPhone.trim().replace(/\D/g, "").replace(/^0/, "62") || null;
       await onSave({
         name,
         address,
         latitude: pickedLocation?.lat ?? store.latitude,
         longitude: pickedLocation?.lng ?? store.longitude,
+        notification_phone: cleanPhone,
       });
+      // Simpan ke localStorage sebagai fallback untuk customer-facing side
+      if (cleanPhone) localStorage.setItem("wa_notification_phone", cleanPhone);
+      else localStorage.removeItem("wa_notification_phone");
       showToast("Informasi toko berhasil diperbarui", "success");
       setIsEditing(false);
       setPickedLocation(null);
@@ -87,6 +93,7 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
   const handleCancel = () => {
     setName(store.name);
     setAddress(store.address);
+    setNotificationPhone(store.notification_phone ?? "");
     setPickedLocation(null);
     setIsEditing(false);
   };
@@ -148,6 +155,11 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
                 <DetailItem icon={Phone} label="Telepon Pemilik" value={store.owner.phone_number} />
               </>
             )}
+            <DetailItem
+              icon={Phone}
+              label="Nomor WhatsApp Toko"
+              value={store.notification_phone ?? "Belum diatur — klik Edit untuk mengisi"}
+            />
             <DetailItem icon={Hash} label="Slug" value={store.slug} />
           </div>
 
@@ -191,6 +203,19 @@ export function StoreInfoForm({ store, onSave }: StoreInfoFormProps) {
             placeholder="Masukkan alamat toko"
             required
           />
+
+          <div className="space-y-1.5">
+            <Input
+              label="Nomor WhatsApp Toko"
+              value={notificationPhone}
+              onChange={(e) => setNotificationPhone(e.target.value)}
+              placeholder="cth: 08123456789 atau 628123456789"
+              type="tel"
+            />
+            <p className="text-xs text-text-secondary">
+              Nomor WA asli yang bisa dihubungi customer — berbeda dari nomor akun. Dipakai untuk tombol "Hubungi Toko" dan notifikasi pesanan via WhatsApp.
+            </p>
+          </div>
 
           {/* Location picker */}
           <div className="space-y-3">

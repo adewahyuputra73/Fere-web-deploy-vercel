@@ -155,6 +155,12 @@ const inventoryNavItems: NavItem[] = [
 
 const bottomNavItems: NavItem[] = [
   {
+    label: "Multi Brand",
+    href: "/brands",
+    icon: <Store className="h-5 w-5" />,
+    roles: ["owner"],
+  },
+  {
     label: "Cabang",
     href: "/outlets",
     icon: <Building2 className="h-5 w-5" />,

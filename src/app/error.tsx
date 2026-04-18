@@ -41,10 +41,10 @@ export default function GlobalError({ error, reset }: ErrorPageProps) {
             Coba Lagi
           </button>
           <a
-            href="/dashboard"
+            href="/"
             className="px-6 py-3 bg-surface border border-border text-text-primary font-semibold rounded-xl hover:bg-background transition-colors"
           >
-            Ke Dashboard
+            Ke Beranda
           </a>
         </div>
         <p className="text-xs text-text-disabled mt-8">{APP_NAME}</p>

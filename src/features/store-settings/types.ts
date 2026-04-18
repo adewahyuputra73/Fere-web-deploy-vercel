@@ -18,6 +18,8 @@ export interface StoreInfo {
   createdAt: string;
   updatedAt: string;
   owner?: StoreOwner;
+  // Nomor WhatsApp khusus untuk notifikasi pesanan ke customer
+  notification_phone?: string | null;
   // Biteship area ID untuk origin pengiriman
   area_id?: string | null;
   // Tax & service charge (may be present in BE response)
@@ -30,6 +32,15 @@ export interface StoreInfo {
 }
 
 export interface UpdateStoreRequest {
+  name: string;
+  address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  notification_phone?: string | null;
+}
+
+export interface CreateStoreRequest {
+  ownerId: string;
   name: string;
   address: string;
   latitude?: number | null;

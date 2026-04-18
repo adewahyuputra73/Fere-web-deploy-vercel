@@ -106,7 +106,9 @@ export const pubPreorderService = {
   },
 
   async create(data: CreatePreorderRequest): Promise<Preorder> {
-    const response = await pubClient.post<any>("/preorders", data);
+    const response = await pubClient.post<any>("/preorders", data, {
+      headers: { "x-be-path": "/preorders/" },
+    });
     return response.data.data;
   },
 };
