@@ -324,7 +324,7 @@ export default function DashboardPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-text-primary">{formatCurrency(Number(order.total_amount ?? order.total ?? 0))}</span>
+                          <span className="text-sm font-bold text-text-primary">{formatCurrency(Number(order.total_amount ?? 0))}</span>
                         </td>
                         <td className="px-6 py-4">
                           <Badge
