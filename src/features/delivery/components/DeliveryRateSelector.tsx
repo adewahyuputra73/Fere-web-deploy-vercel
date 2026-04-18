@@ -127,9 +127,9 @@ export function DeliveryRateSelector({
         setRates(buildDisplayRates(rawCouriers));
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err: any) => {
         if (cancelled) return;
-        setError("Gagal memuat tarif pengiriman. Coba lagi.");
+        setError(err?.message === "getRates_failed" ? "area_unavailable" : "load_failed");
         setLoading(false);
       });
 
@@ -198,13 +198,39 @@ export function DeliveryRateSelector({
   }
 
   if (error) {
+    const isUnavailable = error === "area_unavailable";
     return (
       <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl"
-        style={{ backgroundColor: "#FEE2E2", color: "#DC2626", border: "1.5px solid #FECACA" }}
+        className="rounded-2xl p-4 space-y-2"
+        style={{
+          backgroundColor: isUnavailable ? "#FEF3C7" : "#FEE2E2",
+          border: `1.5px solid ${isUnavailable ? "#FDE68A" : "#FECACA"}`,
+        }}
       >
-        <AlertCircle className="h-4 w-4 shrink-0" />
-        <span className="text-sm font-medium">{error}</span>
+        <div className="flex items-start gap-2">
+          <AlertCircle
+            className="h-4 w-4 shrink-0 mt-0.5"
+            style={{ color: isUnavailable ? "#D97706" : "#DC2626" }}
+          />
+          <div className="space-y-1">
+            <p
+              className="text-sm font-black"
+              style={{ color: isUnavailable ? "#92400E" : "#DC2626" }}
+            >
+              {isUnavailable
+                ? "Pengiriman ke area ini belum tersedia"
+                : "Gagal memuat tarif pengiriman"}
+            </p>
+            <p
+              className="text-xs font-medium leading-relaxed"
+              style={{ color: isUnavailable ? "#A16207" : "#B91C1C" }}
+            >
+              {isUnavailable
+                ? "Layanan kurir online belum menjangkau area tujuan yang dipilih. Pilih metode pengambilan sendiri atau hubungi toko untuk alternatif pengiriman."
+                : "Terjadi kendala saat menghubungi layanan kurir. Coba pilih ulang area tujuan atau muat ulang halaman."}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -212,11 +238,18 @@ export function DeliveryRateSelector({
   if (rates.length === 0) {
     return (
       <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed"
-        style={{ borderColor: "rgba(124,74,30,0.18)", color: "#9C7D58" }}
+        className="flex items-start gap-2 px-4 py-3 rounded-2xl"
+        style={{ backgroundColor: "#FEF3C7", border: "1.5px solid #FDE68A" }}
       >
-        <PackageX className="h-4 w-4 shrink-0" />
-        <span className="text-sm font-medium">Tidak ada kurir tersedia untuk rute ini</span>
+        <PackageX className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+        <div>
+          <p className="text-sm font-black" style={{ color: "#92400E" }}>
+            Tidak ada kurir tersedia
+          </p>
+          <p className="text-xs font-medium mt-0.5" style={{ color: "#A16207" }}>
+            Tidak ada layanan pengiriman yang melayani rute ini saat ini.
+          </p>
+        </div>
       </div>
     );
   }

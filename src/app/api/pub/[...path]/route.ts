@@ -108,7 +108,10 @@ async function handle(
     );
   }
 
-  const endpoint = "/" + params.path.join("/");
+  // x-be-path header allows services to specify exact BE path (incl. trailing slash)
+  // because Next.js normalizes/strips trailing slashes before routing
+  const bePathOverride = request.headers.get("x-be-path");
+  const endpoint = bePathOverride || "/" + params.path.join("/");
   const beUrl = new URL(BE_BASE + endpoint);
 
   // Forward search params (e.g. ?limit=50)

@@ -321,7 +321,7 @@ export default function CheckoutPage() {
                         order_note: notes.trim() || undefined,
                         items: items.map((item) => ({
                             name: item.product.name,
-                            value: item.subtotal,
+                            value: Math.min(item.subtotal, 20_000_000),
                             weight: 200,
                             quantity: item.quantity,
                         })),
@@ -350,8 +350,12 @@ export default function CheckoutPage() {
             }
 
             const orderNumber = order?.order_number ?? order?.id ?? `ORD-${Date.now()}`;
-            // Normalisasi nomor WA toko: hapus "+", spasi, pastikan format 62xxx
-            const rawStorePhone = storeInfo?.owner?.phone_number ?? "";
+            // Prioritas: notification_phone dari storeInfo → localStorage fallback → owner phone
+            const rawStorePhone =
+              storeInfo?.notification_phone ||
+              (typeof window !== "undefined" ? localStorage.getItem("wa_notification_phone") : null) ||
+              storeInfo?.owner?.phone_number ||
+              "";
             const storeWaPhone = rawStorePhone.replace(/\D/g, "").replace(/^0/, "62");
             const confirmParams = new URLSearchParams({
                 orderNumber,
@@ -762,7 +766,7 @@ export default function CheckoutPage() {
                                         destinationArea={destinationArea}
                                         items={items.map((item) => ({
                                             name: item.product.name,
-                                            value: item.subtotal,
+                                            value: Math.min(item.subtotal, 20_000_000),
                                             weight: 200,
                                             quantity: item.quantity,
                                         }))}

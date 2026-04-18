@@ -91,6 +91,7 @@ export default function OrderPage() {
     }, [products]);
 
     const filteredProducts = useMemo(() => {
+        const isOutOfStock = (p: Product) => p.useStock && (p.stockQuantity ?? 0) <= 0;
         return products
             .filter((product) => {
                 if (!product.isActive) return false;
@@ -102,6 +103,9 @@ export default function OrderPage() {
                 const catA = a.categoryName ?? "";
                 const catB = b.categoryName ?? "";
                 if (catA !== catB) return catA.localeCompare(catB, "id");
+                const aOut = isOutOfStock(a) ? 1 : 0;
+                const bOut = isOutOfStock(b) ? 1 : 0;
+                if (aOut !== bOut) return aOut - bOut;
                 return a.name.localeCompare(b.name, "id");
             });
     }, [products, searchQuery]);

@@ -39,7 +39,6 @@ export const biteshipService = {
    */
   async getRates(data: BiteshipRateRequest): Promise<BiteshipCourier[]> {
     try {
-      console.log("[biteshipService] getRates request:", data);
       const res = await pubClient.post<any>(ENDPOINTS.BITESHIP.RATES, data);
       const payload = res.data?.data ?? res.data;
       const pricing: BiteshipCourier[] = payload?.pricing ?? [];
@@ -50,7 +49,10 @@ export const biteshipService = {
       console.error(
         `[biteshipService] getRates error | status=${status} | body=${JSON.stringify(body)} | request=${JSON.stringify(data)}`
       );
-      return [];
+      // Re-throw agar komponen bisa tampilkan pesan yang tepat
+      const wrapped = new Error("getRates_failed") as any;
+      wrapped.httpStatus = status;
+      throw wrapped;
     }
   },
 
