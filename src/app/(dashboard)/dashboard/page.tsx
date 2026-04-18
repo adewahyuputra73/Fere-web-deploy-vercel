@@ -336,7 +336,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-xs font-medium text-text-secondary">
-                            {formatRelativeTime(order.createdAt ?? order.created_at)}
+                            {formatRelativeTime(order.createdAt)}
                           </span>
                         </td>
                       </tr>
